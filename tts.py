@@ -170,8 +170,16 @@ class SpeakingEngine(QObject):
             self._seq += 1
             self.play_requested.emit(path)   # 跨线程：主线程事件循环里才真正播放
         except urllib.error.HTTPError as exc:
-            # 服务在但拒绝（如 ref 路径不对/语言不支持）→ 提示参考音频配置
-            self._warn("⚠ 语音服务拒绝了请求（%s）——检查「语音播报设置…」的参考音频路径/语言" % exc.code)
+            # 服务在但拒绝（如 ref 路径不对/语言不支持）→ 尽量把服务端真实原因带出来
+            reason = ""
+            try:
+                body = exc.read().decode("utf-8", errors="replace")
+                info = json.loads(body)
+                reason = info.get("Exception") or info.get("message") or ""
+            except Exception:
+                pass
+            hint = "检查「语音播报设置…」的参考音频路径/语言" if "prompt" in reason.lower() or "ref" in reason.lower() or "not exists" in reason.lower() else "稍后再试"
+            self._warn("⚠ 语音服务拒绝了请求（%s）%s%s" % (exc.code, ("：" + reason) if reason else "", "——" + hint))
         except Exception:
             # 服务没起/出错 → 安静跳过，只节流提示
             self._warn("⚠ 艾莲的声音没响：本地语音服务未就绪")

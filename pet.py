@@ -1023,8 +1023,13 @@ class PetWindow(QWidget):
 
     def _tts_speak(self, text):
         """艾莲的回复/闲话 → 合成语音播报（开关关着时内部直接返回，零占用）。"""
-        if self._tts_cfg.get("enabled"):
-            self._tts.speak(text)
+        if not self._tts_cfg.get("enabled"):
+            return
+        text = (text or "").strip()
+        # 空文本或纯标点 → 服务端会 400「请输入有效文本」，不值得播报，直接跳过
+        if not text or all(c in "，。！？…、～~·,?!.:;\"'「」()（）" for c in text):
+            return
+        self._tts.speak(text)
 
     def _on_tts_status(self, status):
         """播报状态：服务未就绪等提示用气泡告诉主人（节流后）。"""
