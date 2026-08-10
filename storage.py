@@ -11,6 +11,28 @@ def today_str():
     return datetime.date.today().isoformat()
 
 
+DEFAULT_CAPTION = {   # 实时媒体字幕设置
+    "enabled": False,
+    "model": "FunAudioLLM/SenseVoiceSmall",   # 识别模型（SenseVoiceSmall 实时 / TeleSpeechASR 高精度）
+    "language": "auto",   # auto/zh/en/yue/ja/ko
+    "font_size": 18,
+    "color": "#F5F0E6",   # 粉笔白
+}
+
+DEFAULT_VOICE = {   # 语音输入设置
+    "enabled": False,   # 右键桌宠「语音输入」开关：开→聊天栏出现按住说话的麦克风按钮
+}
+
+DEFAULT_TTS = {   # 艾莲语音播报（本地 GPT-SoVITS 服务）
+    "enabled": False,
+    "url": "http://127.0.0.1:9880",   # api_v2.py 默认端口（POST /tts 返回 WAV）
+    "server_cmd": "",   # 宠物接管服务生命周期的启动命令（可空=外部手动管理；开启开关时宠物拉起、关闭/退出时终止）
+    "ref_audio_path": "",   # 参考音频（音色来源，如 C:/Users/21495/gsvi/custom_refs/ref_sapi_zh.wav 或艾莲模型的 ref.wav）
+    "prompt_text": "",   # 参考音频对应的文字（转写，填了音色更稳）
+    "prompt_lang": "zh",   # 参考音频语言（zh/en/ja/ko/yue 等）
+}
+
+
 def default_data():
     return {
         "exam_date": "",          # 空串表示未设置，如 "2026-12-19"
@@ -30,6 +52,9 @@ def default_data():
             "api_key": "",
         },
         "pet_idle": {"enabled": True, "interval_min": 8},   # 桌宠闲话间隔（分钟）
+        "caption": dict(DEFAULT_CAPTION),   # 实时媒体字幕（黑板）
+        "voice": dict(DEFAULT_VOICE),       # 语音输入
+        "tts": dict(DEFAULT_TTS),           # 艾莲语音播报
     }
 
 

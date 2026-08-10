@@ -17,13 +17,18 @@ from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtCore import QBuffer, QByteArray, QThread
 from PyQt5.QtGui import QColor, QFont, QImage, QPainter, QPixmap
 from PyQt5.QtWidgets import (
-    QApplication, QFrame, QHBoxLayout, QLabel, QLineEdit, QMenu,
-    QPushButton, QScrollArea, QVBoxLayout, QWidget,
+    QApplication, QDialog, QFormLayout, QFrame, QHBoxLayout, QInputDialog,
+    QLabel, QLineEdit, QMenu, QPushButton, QScrollArea, QVBoxLayout, QWidget,
 )
 
 from ani import AniClip, load_ani
+from blackboard import Blackboard
+from captions import CaptionEngine, lang_label
+from tts import SpeakingEngine
+from voice import VoiceInputEngine
 
 import chat
+import secret
 import storage
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
@@ -284,8 +289,43 @@ class PetChatBar(QFrame):
         send_btn.clicked.connect(self._send)
         lay.addWidget(send_btn)
 
-        self.setFixedWidth(260)
+        # 语音输入：按住 🎤 说话，松开识别成文字直接发送（可在右键菜单开关）
+        self.mic_btn = QPushButton("🎤")
+        self.mic_btn.setObjectName("secondary")
+        self.mic_btn.setFixedSize(28, 26)
+        self.mic_btn.setCursor(Qt.PointingHandCursor)
+        self.mic_btn.setToolTip("按住说话，松开识别发送")
+        self.mic_btn.pressed.connect(self._mic_pressed)
+        self.mic_btn.released.connect(self._mic_released)
+        self.mic_btn.hide()
+        lay.addWidget(self.mic_btn)
+
+        self.setFixedWidth(296)
         self.adjustSize()
+
+    def set_voice_enabled(self, enabled):
+        """语音开关：显示/隐藏麦克风按钮。"""
+        if enabled:
+            self.mic_btn.show()
+        else:
+            self.mic_btn.hide()
+            self.mic_btn.setStyleSheet("")
+
+    def _mic_pressed(self):
+        pet = self._pet
+        pet._touch()
+        if pet._voice is not None:
+            pet._voice.start()
+            self.mic_btn.setStyleSheet(
+                "QPushButton { background: #C0392B; color: white; border-radius: 5px; }")
+            self.mic_btn.setText("🔴")
+
+    def _mic_released(self):
+        pet = self._pet
+        if pet._voice is not None:
+            pet._voice.stop()
+        self.mic_btn.setStyleSheet("")
+        self.mic_btn.setText("🎤")
 
     def _reposition(self):
         """始终放在桌宠下方；下方放不下时把宠物往上挪，而不是让输入框跑到上方。"""
@@ -359,6 +399,7 @@ class PetChatBar(QFrame):
         pet = self._pet
         pet.refresh_status()
         pet.speak_bubble(reply)
+        pet._tts_speak(reply)
         pet.react_to_reply(reply)
         if pet._chat is not None and pet._chat.isVisible():
             pet._chat.append_message("pet", reply)
@@ -571,6 +612,7 @@ class ChatWindow(QWidget):
         self.append_message("pet", reply)
         self._pet.refresh_status()
         self._pet.speak_bubble(reply)
+        self._pet._tts_speak(reply)
         self._pet.react_to_reply(reply)
 
     def _open_settings(self):
@@ -615,6 +657,12 @@ class PetWindow(QWidget):
         self._anim_timer.timeout.connect(self._anim_tick)
         self._anim_timer.start(base.delay_ms)
 
+        # 字幕说话动画：字幕生成时进入“说话”表情；字幕停止约 1.6s 后回常态
+        self._caption_timer = QTimer(self)
+        self._caption_timer.setSingleShot(True)
+        self._caption_timer.setInterval(1600)
+        self._caption_timer.timeout.connect(self._caption_speak_done)
+
         # 闲置监测：最后互动时间 + 定期检查是否太久没互动（太久 → 趴睡）
         self._last_interaction = time.monotonic()
         self._idle_check = QTimer(self)
@@ -641,6 +689,50 @@ class PetWindow(QWidget):
         self._idle_timer.timeout.connect(self._idle_speak)
         self._idle_timer.start(max(2, int(cfg.get("interval_min", 8))) * 60 * 1000)
 
+        # 实时媒体字幕（黑板）：独立于对话气泡，右键菜单开关 + 设置
+        self._caption_cfg = win.data.setdefault("caption", dict(storage.DEFAULT_CAPTION))
+        self._blackboard = Blackboard(lambda: self._caption_cfg)
+        self._blackboard.set_language_label(lang_label(self._caption_cfg.get("language", "auto")))
+        self._engine = CaptionEngine(
+            get_key=lambda: secret.get("asr_api_key"),
+            get_lang=lambda: (self._win.data.get("caption") or {}).get("language", "auto"),
+            get_model=lambda: (self._win.data.get("caption") or {}).get(
+                "model", "FunAudioLLM/SenseVoiceSmall"),
+        )
+        self._engine.text_ready.connect(self._on_caption_text)
+        self._engine.interim_ready.connect(self._on_caption_interim)
+        self._engine.status_changed.connect(self._on_caption_status)
+        if self._caption_cfg.get("enabled"):
+            self._engine.start()
+
+        # 语音输入：按住麦克风按钮说话 → 识别成文字 → 当打字发出去（可开关）
+        self._voice_cfg = win.data.setdefault("voice", dict(storage.DEFAULT_VOICE))
+        self._voice = VoiceInputEngine(
+            get_key=lambda: secret.get("asr_api_key"),
+            get_lang=lambda: "auto",
+            get_model=lambda: (self._win.data.get("caption") or {}).get(
+                "model", "FunAudioLLM/SenseVoiceSmall"),
+        )
+        self._voice.text_ready.connect(self._on_voice_text)
+        self._voice.status_changed.connect(self._on_voice_status)
+        if self._voice_cfg.get("enabled"):
+            self._bar.set_voice_enabled(True)
+
+        # 语音播报：艾莲的回复/闲话用本地 GPT-SoVITS 合成声音（可开关）
+        self._tts_cfg = win.data.setdefault("tts", dict(storage.DEFAULT_TTS))
+        self._tts = SpeakingEngine(
+            get_url=lambda: self._tts_cfg.get("url", storage.DEFAULT_TTS["url"]),
+            get_cmd=lambda: self._tts_cfg.get("server_cmd", ""),
+            get_ref=lambda: {
+                "ref_audio_path": self._tts_cfg.get("ref_audio_path", ""),
+                "prompt_text": self._tts_cfg.get("prompt_text", ""),
+                "prompt_lang": self._tts_cfg.get("prompt_lang", "zh"),
+            },
+        )
+        self._tts.status_changed.connect(self._on_tts_status)
+        if self._tts_cfg.get("enabled"):
+            self._tts.set_enabled(True)   # 恢复上次状态；后台拉起服务，关着就零占用
+
     # ---------- 生命周期：状态条/输入框跟随桌宠显示隐藏 ----------
     def showEvent(self, event):
         super().showEvent(event)
@@ -649,6 +741,9 @@ class PetWindow(QWidget):
         self._status.show()
         self._bar.show()
         self._reposition_attached()
+        if self._caption_cfg.get("enabled"):
+            self._engine.start()
+            self._blackboard.show_near(self)
         self.raise_()
 
     def hide(self):
@@ -657,6 +752,8 @@ class PetWindow(QWidget):
         self._bar.hide()
         self._close_bubble()
         self._close_preview()
+        self._engine.stop()
+        self._blackboard.hide()
         super().hide()
 
     def moveEvent(self, event):
@@ -742,6 +839,17 @@ class PetWindow(QWidget):
         else:
             self._set_anim("talking")  # 回答/思考中：持续说话动画，直到气泡消失回常态
 
+    def _caption_speak(self):
+        """字幕生成时：艾莲进入“说话”表情（会唤醒趴睡）。字幕持续到达则保持说话，
+        停止约 1.6s 后回常态。纯 UI 动画，不影响识别速度。"""
+        if self._anim_name != "talking":
+            self._set_anim("talking")
+        self._caption_timer.start()
+
+    def _caption_speak_done(self):
+        if self._anim_name == "talking":
+            self._return_to_base()
+
     # ---------- 外观 ----------
     def _make_fallback_clip(self):
         pm = QPixmap(PET_WIDTH, PET_WIDTH)
@@ -794,6 +902,20 @@ class PetWindow(QWidget):
         settings_action = menu.addAction("设置…")
         chat_action = menu.addAction("打开聊天记录 💬")
         menu.addSeparator()
+        cap_action = menu.addAction("启用字幕")
+        cap_action.setCheckable(True)
+        cap_action.setChecked(bool(self._caption_cfg.get("enabled")))
+        cap_settings_action = menu.addAction("字幕设置…")
+        menu.addSeparator()
+        voice_action = menu.addAction("语音输入 🎤")
+        voice_action.setCheckable(True)
+        voice_action.setChecked(bool(self._voice_cfg.get("enabled")))
+        menu.addSeparator()
+        tts_action = menu.addAction("语音播报 🔊")
+        tts_action.setCheckable(True)
+        tts_action.setChecked(bool(self._tts_cfg.get("enabled")))
+        tts_cfg_action = menu.addAction("语音播报设置…")
+        menu.addSeparator()
         quit_action = menu.addAction("退出程序")
         chosen = menu.exec_(event.globalPos())
         if chosen == restore_action:
@@ -803,8 +925,132 @@ class PetWindow(QWidget):
             SettingsDialog(self._win).exec_()
         elif chosen == chat_action:
             self.open_chat()
+        elif chosen == cap_action:
+            self._toggle_caption(cap_action.isChecked())
+        elif chosen == cap_settings_action:
+            from captions import CaptionSettingsDialog
+            CaptionSettingsDialog(self._win).exec_()
+            self._apply_caption_settings()
+        elif chosen == voice_action:
+            self._toggle_voice(voice_action.isChecked())
+        elif chosen == tts_action:
+            self._toggle_tts(tts_action.isChecked())
+        elif chosen == tts_cfg_action:
+            self._set_tts_cmd()
         elif chosen == quit_action:
             self._win.quit_now()
+
+    # ---------- 实时字幕（黑板） ----------
+    def _toggle_caption(self, on):
+        """右键菜单「启用字幕」开关：开→采集+识别+黑板；关→全部停掉。"""
+        self._caption_cfg["enabled"] = bool(on)
+        self._win.save()
+        if on:
+            self._engine.start()
+            if self.isVisible():
+                self._blackboard.show_near(self)
+        else:
+            self._engine.stop()
+            self._blackboard.hide()
+
+    # ---------- 语音输入 ----------
+    def _toggle_voice(self, on):
+        """右键菜单「语音输入」开关：开→显示麦克风按钮；关→停掉录音并隐藏。"""
+        self._voice_cfg["enabled"] = bool(on)
+        self._win.save()
+        if not on:
+            self._voice.stop()
+        self._bar.set_voice_enabled(on)
+
+    def _on_voice_text(self, text):
+        """语音识别结果：直接塞进输入框并发送（加计划/对话都走正常路径）。"""
+        self._bar.input.setText(text)
+        self._bar._send()
+
+    def _on_voice_status(self, status):
+        """识别状态：错误提示用气泡告诉主人。"""
+        if status.startswith("⚠"):
+            self.speak_bubble(status)
+
+    # ---------- 语音播报 ----------
+    def _toggle_tts(self, on):
+        """右键「语音播报」开关：开→后台拉起本地语音服务；关→停播并终止服务（零占用）。"""
+        self._tts_cfg["enabled"] = bool(on)
+        self._win.save()
+        self._tts.set_enabled(bool(on))
+
+    def _set_tts_cmd(self):
+        """语音播报设置：服务启动命令 + 参考音频（音色来源）等。"""
+        dlg = QDialog(self)
+        dlg.setWindowTitle("语音播报设置")
+        form = QFormLayout(dlg)
+        cmd_edit = QLineEdit(dlg)
+        cmd_edit.setText(self._tts_cfg.get("server_cmd", ""))
+        cmd_edit.setPlaceholderText('例：cmd /c "cd /d C:\\Users\\21495\\gsvi && C:\\Users\\21495\\gsvi_venv\\Scripts\\python.exe api_v2.py -p 9880"')
+        ref_edit = QLineEdit(dlg)
+        ref_edit.setText(self._tts_cfg.get("ref_audio_path", ""))
+        ref_edit.setPlaceholderText("例：C:/Users/21495/gsvi/custom_refs/ref_sapi_zh.wav（艾莲音色的参考音频）")
+        prompt_edit = QLineEdit(dlg)
+        prompt_edit.setText(self._tts_cfg.get("prompt_text", ""))
+        prompt_edit.setPlaceholderText("参考音频里说的话（转写，填了音色更稳）")
+        lang_edit = QLineEdit(dlg)
+        lang_edit.setText(self._tts_cfg.get("prompt_lang", "zh"))
+        form.addRow("服务启动命令", cmd_edit)
+        form.addRow("参考音频路径", ref_edit)
+        form.addRow("参考音频文字", prompt_edit)
+        form.addRow("参考音频语言", lang_edit)
+        hint = QLabel("服务命令留空 = 你手动启动服务，宠物只发文字。\n"
+                      "填了命令 = 开启语音播报时宠物自动拉起、关闭/退出时终止（零占用）。")
+        hint.setWordWrap(True)
+        hint.setStyleSheet("color:#888;")
+        form.addRow(hint)
+        btns = QHBoxLayout()
+        ok_btn = QPushButton("保存", dlg)
+        cancel_btn = QPushButton("取消", dlg)
+        btns.addStretch(1)
+        btns.addWidget(ok_btn)
+        btns.addWidget(cancel_btn)
+        form.addRow(btns)
+        ok_btn.clicked.connect(dlg.accept)
+        cancel_btn.clicked.connect(dlg.reject)
+        if dlg.exec_() == QDialog.Accepted:
+            self._tts_cfg["server_cmd"] = cmd_edit.text().strip()
+            self._tts_cfg["ref_audio_path"] = ref_edit.text().strip()
+            self._tts_cfg["prompt_text"] = prompt_edit.text().strip()
+            lang = lang_edit.text().strip() or "zh"
+            self._tts_cfg["prompt_lang"] = lang
+            self._win.save()
+
+    def _tts_speak(self, text):
+        """艾莲的回复/闲话 → 合成语音播报（开关关着时内部直接返回，零占用）。"""
+        if self._tts_cfg.get("enabled"):
+            self._tts.speak(text)
+
+    def _on_tts_status(self, status):
+        """播报状态：服务未就绪等提示用气泡告诉主人（节流后）。"""
+        if status.startswith("⚠"):
+            self.speak_bubble(status)
+
+    def _on_caption_text(self, text):
+        self._caption_speak()   # 字幕生成时艾莲进入“说话”表情
+        # 定稿：替换预览行入幕（无预览行则直接追加）
+        self._blackboard.finalize_interim(text)
+
+    def _on_caption_interim(self, text):
+        self._caption_speak()   # 字幕生成时艾莲进入“说话”表情
+        # 半成品：替换当前预览行，不新增
+        self._blackboard.show_interim(text)
+
+    def _on_caption_status(self, status):
+        self._blackboard.set_status(status)
+
+    def _apply_caption_settings(self):
+        """字幕设置对话框确定后：刷新黑板外观/语言，必要时重新定位。"""
+        self._caption_cfg.setdefault("language", "auto")
+        self._blackboard.set_language_label(lang_label(self._caption_cfg.get("language", "auto")))
+        self._blackboard.apply_settings()
+        if self._caption_cfg.get("enabled") and self.isVisible():
+            self._blackboard.show_near(self)
 
     # ---------- 预览（由头顶状态条取代，保留空实现以兼容调用） ----------
     def _close_preview(self):
@@ -851,6 +1097,7 @@ class PetWindow(QWidget):
         else:
             text = random.choice(chat.IDLE_PHRASES)
         self.speak_bubble(text)
+        self._tts_speak(text)   # 语音播报（开的话，艾莲把闲话念出来）
         self._set_anim("happy", oneshot=True)  # 鼓励 → 高兴动作
 
     # ---------- 聊天记录窗 ----------

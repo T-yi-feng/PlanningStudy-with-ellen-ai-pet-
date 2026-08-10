@@ -11,3 +11,6 @@ __pycache__/
 
 # 数据备份
 data.json.bak
+
+# 本地大文件模型包（几 GB 的 GPT-SoVITS 整合包等）—— 不入库
+model/

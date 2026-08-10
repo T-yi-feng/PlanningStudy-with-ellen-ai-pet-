@@ -1406,6 +1406,7 @@ class FloatWindow(QWidget):
         if self._pet._chat is not None:
             self._pet._chat.close()
         self._pet.hide()
+        self._pet._tts.stop_server()   # 退出时终止宠物拉起的语音服务（释放显存/线程）
         self.save_position()
         self.close()
 
