@@ -27,11 +27,13 @@ from captions import CaptionEngine, lang_label
 from tts import SpeakingEngine
 from voice import VoiceInputEngine
 
+import autostart
 import chat
+import paths
 import secret
 import storage
 
-_DIR = os.path.dirname(os.path.abspath(__file__))
+_DIR = paths.resource_dir()
 PET_IMAGE = os.path.join(_DIR, "desk_pet", "normal_1.png")  # 旧静态图路径（现由 .ani 动画取代）
 ANI_FILES = {
     "normal": "normal_1.ani",    # 常态
@@ -916,6 +918,10 @@ class PetWindow(QWidget):
         tts_action.setChecked(bool(self._tts_cfg.get("enabled")))
         tts_cfg_action = menu.addAction("语音播报设置…")
         menu.addSeparator()
+        autostart_action = menu.addAction("开机自动启动")
+        autostart_action.setCheckable(True)
+        autostart_action.setChecked(autostart.is_enabled())
+        menu.addSeparator()
         quit_action = menu.addAction("退出程序")
         chosen = menu.exec_(event.globalPos())
         if chosen == restore_action:
@@ -937,6 +943,12 @@ class PetWindow(QWidget):
             self._toggle_tts(tts_action.isChecked())
         elif chosen == tts_cfg_action:
             self._set_tts_cmd()
+        elif chosen == autostart_action:
+            on = autostart_action.isChecked()
+            if autostart.set_enabled(on):
+                self.speak_bubble("已开启开机自动启动 ✓" if on else "已关闭开机自动启动")
+            else:
+                self.speak_bubble("⚠ 设置开机自启失败（注册表写入出错）")
         elif chosen == quit_action:
             self._win.quit_now()
 

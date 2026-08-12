@@ -4,7 +4,9 @@ import datetime
 import json
 import os
 
-DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.json")
+import paths
+
+DATA_FILE = paths.data_path("data.json")
 
 
 def today_str():

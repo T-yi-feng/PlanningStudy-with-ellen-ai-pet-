@@ -29,7 +29,14 @@ pip install -r requirements.txt
 python main.py
 ```
 
-> 提示：开机自启可在「运行」(Win+R) 输入 `shell:startup`，把 `main.py` 的快捷方式放进去即可。
+> 开机自启：右键桌宠 → 勾选「开机自动启动」即可（写注册表 HKCU Run 键，无需管理员权限，下次登录自动运行，无黑框）。也可在「运行」(Win+R) 输入 `shell:startup` 手动放 `main.py` 快捷方式。
+
+## 打包成 exe（可选）
+```bash
+pip install pyinstaller
+python -m PyInstaller --noconfirm KaoyanPlanner.spec
+```
+产物在 `dist/KaoyanPlanner.exe`（单文件、无控制台、带图标）。**把项目里的 `data.json`、`secret.json` 复制到 exe 同目录**，即可带上现有计划和 API 密钥（数据跟随 exe 位置，便携）。打包后右键桌宠「开机自动启动」写的就是 exe 路径，无需 Python 环境。`model/`（GPT-SoVITS 模型）不打进 exe，仍由外部语音服务使用。
 
 ## 使用说明
 1. **添加计划**：切到「今日计划」页，输入内容回车或点「添加」；勾选方框即完成划去，点任务右侧 ✎ 编辑、✕ 删除，也可右键任务操作；底部可清理已完成任务。

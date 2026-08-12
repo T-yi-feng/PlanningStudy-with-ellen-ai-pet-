@@ -14,3 +14,7 @@ data.json.bak
 
 # 本地大文件模型包（几 GB 的 GPT-SoVITS 整合包等）—— 不入库
 model/
+
+# PyInstaller 构建产物（几十 MB 的 exe 与中间文件）—— 不入库
+build/
+dist/

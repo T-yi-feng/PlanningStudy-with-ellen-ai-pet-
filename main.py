@@ -94,7 +94,11 @@ def main():
     # 单实例检查：已有实例则唤醒后退出
     single = SingleInstance()
     if not single.try_acquire():
-        print("已有一个实例在运行，本实例退出。")
+        # 打包成无控制台 exe 后 stdout 为 None，print 会抛异常，这里吞掉即可
+        try:
+            print("已有一个实例在运行，本实例退出。")
+        except (AttributeError, OSError):
+            pass
         sys.exit(0)
 
     win = FloatWindow()

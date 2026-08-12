@@ -6,9 +6,10 @@
 - "asr_api_key"：硅基流动语音识别
 """
 import json
-import os
 
-_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "secret.json")
+import paths
+
+_PATH = paths.data_path("secret.json")
 
 
 def get(key, default=""):
