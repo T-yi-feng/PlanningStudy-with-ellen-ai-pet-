@@ -6,6 +6,7 @@
 import json
 import os
 import random
+import re
 import urllib.error
 import urllib.request
 
@@ -32,6 +33,14 @@ def _local_api_key():
     except Exception:
         return ""
 
+
+def is_configured(cfg):
+    """API 是否可用：开关开着且已配 Key。未配置 = 纯离线，闲话直接走本地话术。"""
+    cfg = cfg or {}
+    if not cfg.get("enabled", True):
+        return False
+    return bool((cfg.get("api_key") or _local_api_key() or "").strip())
+
 SYSTEM_PROMPT = (
     "你是《绝区零》里的艾莲·乔，现在被我请来当陪伴考研学生复习的桌面宠物。"
     "人设：慵懒清冷、奉行「节能主义」，怕麻烦、爱摸鱼，说话三言两语、一切从简，"
@@ -52,6 +61,14 @@ IDLE_PHRASES = [
     "累。困。要糖。…你倒是挺精神。",
     "休息一下吧，睡个十分钟再回来。别把我当闹钟。",
     "…就这样，我看着你复习，少偷懒。",
+]
+
+# 长期任务欠卡时的专属话术
+DEBT_PHRASES = [
+    "喂…你那个长期任务几天没打卡了，今天多打一次能补一天，别攒着。",
+    "欠卡不补，进度只会越拖越远…今天补上吧。",
+    "……有个任务欠卡了，当天再打卡一次就抵消一天，记得哦。",
+    "打卡漏一天没关系，补回来就行。说吧，是不是想偷懒？",
 ]
 
 _GENERIC_REPLIES = [
@@ -94,6 +111,20 @@ FOCUS_PAUSE_KEYS = ("暂停专注", "暂停计时", "暂停")
 FOCUS_RESUME_KEYS = ("继续专注", "继续计时", "继续")
 FOCUS_END_KEYS = ("结束专注", "停止专注", "停止计时", "结束计时", "重置专注", "重置计时")
 
+# 固定任务指令（长期任务）：冻结 / 解冻 / 查询欠卡 / 打卡 / 添加
+FREEZE_KEYS = (
+    "冻结任务", "任务冻结", "冻结计划", "先冻结", "暂时冻结", "暂停一下",
+    "暂停计划", "暂停任务", "最近有事", "冻结",
+)
+UNFREEZE_KEYS = ("解冻任务", "解冻", "解除冻结", "取消冻结", "恢复计划", "恢复任务", "继续任务")
+DEBT_KEYS = (
+    "欠卡", "打卡情况", "长期任务进度", "固定任务进度", "长期任务情况", "固定任务情况",
+    "我欠了多少", "欠了多少天", "打卡了吗", "打卡了没", "今天打卡", "要不要补卡",
+    "补卡情况", "欠卡情况",
+)
+PUNCH_KEYS = ("打卡", "补卡")
+ADD_FIXED_KEYS = ("长期任务", "长期计划", "固定任务", "固定计划")
+
 _GENERIC = {"计划", "今日计划", "任务", "日程", "列表", "清单", "今天", "里", "现在", "一下", "点"}
 
 
@@ -125,12 +156,83 @@ def _extract_task(text, keys):
     return ""
 
 
+def _extract_fixed(text, keys):
+    """解析「添加长期任务 名 N天 简介：…」→ (name, desc, days) 或 None。
+
+    需几天完成可省略（默认 1）；简介以「简介/说明/备注」引出。
+    """
+    for key in keys:
+        if key in text:
+            rest = _after(text, key)
+            if not rest or rest in _GENERIC:
+                rest = _before(text, key)
+            rest = (rest or "").strip(" ：:，,。.！!？?～~、\"'")
+            if not rest:
+                continue
+            # 提取简介
+            desc = ""
+            for tag in ("简介", "说明", "备注"):
+                if tag in rest:
+                    head, _, tail = rest.partition(tag)
+                    rest = head.strip(" ：:，,。.！!～~、\"'")
+                    desc = tail.strip(" ：:，,。.！!？?～~、\"'（）()")
+                    break
+            # 提取天数：N天
+            days = 1
+            m = re.search(r"(\d+)\s*天", rest)
+            if m:
+                days = int(m.group(1))
+                rest = rest[:m.start()].strip(" ：:，,。.！!～~、\"'")
+            name = _clean_task(rest.strip(" ：:，,。.！!～~、\"'"))
+            if name:
+                return name, desc, days
+    return None
+
+
+# ---------- 固定任务状态上下文（喂给 AI，让它能回答任务类问题） ----------
+_TASK_TOPIC_HINTS = (
+    "任务", "计划", "长期", "固定", "欠卡", "补卡", "打卡", "进度",
+    "冻结", "解冻", "复习",
+)
+
+
+def _has_task_topic(text):
+    return any(h in text for h in _TASK_TOPIC_HINTS)
+
+
+def task_context(win):
+    """把当前固定任务状态拼成一段文字，作为 AI 对话前缀上下文。"""
+    data = getattr(win, "data", None) if win is not None else None
+    if data is None:
+        return ""
+    parts = []
+    if data.get("frozen"):
+        since = data.get("frozen_since") or ""
+        parts.append("（长期任务已冻结" + (f"，自 {since}" if since else "") + "）")
+    fixed = [t for t in data.get("tasks", []) if not t.get("done")]
+    if fixed:
+        lines = ["长期任务进度："]
+        for t in fixed:
+            line = f"  {t.get('text', '')} {t.get('progress', 0)}/{t.get('target_days', 1)}"
+            if t.get("owed", 0):
+                line += f"（欠{t.get('owed', 0)}天，当天再打卡一次可抵消）"
+            lines.append(line)
+        parts.append("\n".join(lines))
+    if not parts:
+        return ""
+    return "\n".join(parts)
+
+
 def help_text():
     return ("我可以帮你管计划哦～试试：\n"
             "· 添加 背单词\n"
+            "· 添加长期任务 背单词 30天 简介：每天50个\n"
+            "· 打卡 背单词\n"
             "· 划掉 背单词\n"
             "· 删除 背单词\n"
             "· 列出计划\n"
+            "· 长期任务进度\n"
+            "· 冻结任务 / 解冻任务\n"
             "· 全部完成\n"
             "也可以随便跟我聊天～")
 
@@ -143,6 +245,12 @@ def handle_command(text, win):
     if t in ("帮助", "help", "你能做什么", "你会什么", "你都能干嘛", "怎么用", "怎么用你"):
         return True, help_text()
 
+    # 冻结 / 解冻长期任务（放在专注控制前，避免「暂停计划」误判成暂停专注）
+    if any(k in t for k in FREEZE_KEYS):
+        return True, win.pet_freeze_tasks(True)
+    if any(k in t for k in UNFREEZE_KEYS):
+        return True, win.pet_freeze_tasks(False)
+
     # 专注计时控制
     if any(k in t for k in FOCUS_START_KEYS):
         return True, win.pet_start_focus()
@@ -152,6 +260,17 @@ def handle_command(text, win):
         return True, win.pet_resume_focus()
     if any(k in t for k in FOCUS_END_KEYS):
         return True, win.pet_reset_focus()
+
+    # 欠卡 / 长期任务进度查询
+    if any(k in t for k in DEBT_KEYS):
+        return True, win.pet_debt_report()
+
+    # 打卡 / 补卡（当天第 2 次 = 补卡）
+    if any(k in t for k in PUNCH_KEYS) and not any(q in t for q in ("？", "?", "吗")):
+        task = _extract_task(t, PUNCH_KEYS)
+        if task:
+            return True, win.pet_punch_task(task)
+        return True, "要打卡哪个长期任务？说「打卡 背单词」～"
 
     # 全部完成
     if any(k in t for k in ALL_DONE_HINTS):
@@ -173,6 +292,13 @@ def handle_command(text, win):
         if task:
             return True, win.pet_complete_task(task)
 
+    # 添加固定任务（长期目标）：含「长期任务/固定任务」等词
+    if any(k in t for k in ADD_FIXED_KEYS) and any(k in t for k in ADD_KEYS):
+        parsed = _extract_fixed(t, ADD_FIXED_KEYS)
+        if parsed:
+            name, desc, days = parsed
+            return True, win.pet_add_fixed_task(name, desc, days)
+
     # 添加
     if any(k in t for k in ADD_KEYS):
         task = _extract_task(t, ADD_KEYS)
@@ -190,8 +316,9 @@ class ChatUnavailable(Exception):
 class ChatService:
     """OpenAI 兼容的免费 API 客户端（智谱 GLM-4-Flash / 硅基流动等）。"""
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, context_fn=None):
         self.cfg = cfg or {}
+        self._context_fn = context_fn   # () -> str：固定任务状态，供任务类提问时喂给 AI
 
     def respond(self, user_text):
         """纯文字对话。"""
@@ -218,16 +345,64 @@ class ChatService:
         fallbacks = _VISION_FALLBACK_MODELS if is_vision else _TXT_FALLBACK_MODELS
         models = [primary] + [m for m in fallbacks if m != primary]
 
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        if (not is_vision) and self._context_fn and isinstance(content, str):
+            ctx = self._context_fn()
+            if ctx and _has_task_topic(content):
+                # 任务类提问：先给一段「当前任务状态」，AI 才能答得上
+                messages.append({"role": "user", "content": "【当前任务状态】\n" + ctx})
+        messages.append({"role": "user", "content": content})
+        return self._send(base, key, models, messages)
+
+    def respond_idle_lines(self, n=5, context=""):
+        """联网生成 n 句符合艾莲人设的闲话（一句一行），失败抛 ChatUnavailable。
+
+        供桌宠闲话批量用：一次性生成多句、逐行清洗（去编号/引号），最多取 n 句。
+        温度调高一点，让每次出来的话尽量不一样。
+        """
+        if not self.cfg.get("enabled", True):
+            raise ChatUnavailable("已关闭 AI 对话")
+        key = (self.cfg.get("api_key") or _local_api_key() or "").strip()
+        if not key:
+            raise ChatUnavailable("未配置 API Key")
+        base = (self.cfg.get("base_url") or "").strip() or DEFAULT_PET_CHAT["base_url"]
+        primary = (self.cfg.get("model") or "").strip() or DEFAULT_PET_CHAT["model"]
+        # 闲话是纯文字，优先用文本模型（主模型可能是视觉模型，对这种提示词会回空）
+        models = [m for m in _TXT_FALLBACK_MODELS]
+        if primary not in models:
+            models.append(primary)
+
+        ctx_hint = ("可偶尔提起当前状态：" + context + "（只说闲话，不要给操作建议）。"
+                    if context else "")
+        prompt = (
+            "现在不要回答我、不要提问、不要打招呼。只按你的人设输出 %d 句"
+            "艾莲的日常碎碎念/懒人闲话/给复习中的主人的小声鼓励，一句一行，"
+            "每句不超过 30 字，不要编号，不要「好的」「明白」这类纯回应词。"
+            "保持慵懒、怕麻烦、嘴硬心软、三言两语、多用省略号少用感叹号的调子。%s"
+            % (n, ctx_hint)
+        )
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ]
+        content = self._send(base, key, models, messages, temperature=1.0)
+        lines = []
+        for ln in content.splitlines():
+            ln = re.sub(r"^[\s\-*•]*\d+[.、）)]?\s*", "", ln.strip())
+            ln = ln.strip(" 　“”\"'《》「」")
+            if ln:
+                lines.append(ln[:40])
+        return lines[:n]
+
+    def _send(self, base, key, models, messages, temperature=0.8):
+        """逐个模型尝试发请求，返回文本内容；全部失败抛 ChatUnavailable。"""
         last_err = None
         for model in models:
             payload = {
                 "model": model,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": content},
-                ],
+                "messages": messages,
                 "max_tokens": 300,
-                "temperature": 0.8,
+                "temperature": temperature,
             }
             req = urllib.request.Request(
                 base,
@@ -250,8 +425,12 @@ class ChatService:
             except Exception as exc:  # 超时/网络错误
                 raise ChatUnavailable(str(exc))
             try:
-                return body["choices"][0]["message"]["content"].strip()
+                content = body["choices"][0]["message"]["content"].strip()
             except (KeyError, IndexError, TypeError):
                 last_err = "返回格式异常"
                 continue
+            if not content:
+                last_err = "空回复"
+                continue
+            return content
         raise ChatUnavailable(last_err or "所有模型均不可用")

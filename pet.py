@@ -12,6 +12,7 @@ import base64
 import os
 import random
 import time
+from collections import deque
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtCore import QBuffer, QByteArray, QThread
@@ -32,6 +33,7 @@ import chat
 import paths
 import secret
 import storage
+import theme
 
 _DIR = paths.resource_dir()
 PET_IMAGE = os.path.join(_DIR, "desk_pet", "normal_1.png")  # 旧静态图路径（现由 .ani 动画取代）
@@ -47,6 +49,10 @@ ROUND_FONT = "YouYuan"  # 圆润可爱字体，缺失时系统自动回退到雅
 
 # 太久没有互动（点击/拖动/输入）时进入「趴睡」状态
 IDLE_TOO_LONG_MS = 5 * 60 * 1000
+
+# 联网 AI 闲话：后台批量生成，池空才补、失败冷却再试
+_AI_IDLE_BATCH = 5
+_AI_IDLE_FAIL_COOLDOWN_S = 30 * 60
 
 # 回复中出现这些字样 → 任务刚完成，触发「点赞」动画
 _DONE_REPLY_MARKS = ("搞定", "划掉", "已勾掉", "全部完成", "完成啦", "太棒了")
@@ -150,6 +156,26 @@ class ChatWorker(QThread):
         self.reply_ready.emit(reply)
 
 
+class IdleLinesWorker(QThread):
+    """后台联网生成一批艾莲式闲话；成功 lines_ready，失败 failed。"""
+    lines_ready = pyqtSignal(list)
+    failed = pyqtSignal()
+
+    def __init__(self, service, n, context, parent=None):
+        super().__init__(parent)
+        self._service = service
+        self._n = n
+        self._context = context
+
+    def run(self):
+        try:
+            lines = self._service.respond_idle_lines(self._n, self._context)
+        except Exception:
+            self.failed.emit()
+            return
+        self.lines_ready.emit(lines)
+
+
 class PetBubble(QFrame):
     """宠物头上的对话气泡（可含图片缩略图）：短暂显示后自动消失。"""
     closed = pyqtSignal()  # 超时自动消失时发出（手动关闭不发出）
@@ -229,19 +255,32 @@ class PetStatus(QFrame):
         self.refresh()
 
     def refresh(self):
-        """刷新进度与专注时间。专注中显示本次正计时，否则显示未专注。"""
+        """刷新进度与专注时间。专注中显示本次正计时，否则显示未专注。
+
+        计入固定任务（长期目标）：已 done 或今天已打卡算完成；冻结/欠卡加标记。
+        """
         win = self._pet._win
         day = storage.today_str()
         tasks = win.data.get("daily", {}).get(day, [])
         done = sum(1 for t in tasks if t.get("done"))
         total = len(tasks)
+        fixed = win.data.get("tasks", [])
+        done += sum(1 for t in fixed if t.get("done") or t.get("last_done_date") == day)
+        total += len(fixed)
 
         tt = getattr(win, "timer_tab", None)
         if tt is not None and getattr(tt, "_running", False):
             focus = "专注 " + tt._fmt(int(getattr(tt, "_elapsed", 0)))
         else:
             focus = "未专注"
-        self.label.setText(f"📋 {done}/{total}　·　🎯 {focus}")
+        marks = []
+        if win.data.get("frozen"):
+            marks.append("❄冻结")
+        debts = [t for t in fixed if not t.get("done") and t.get("owed", 0) > 0]
+        if debts:
+            marks.append(f"⚠欠{sum(t.get('owed', 0) for t in debts)}")
+        mark = " · " + " · ".join(marks) if marks else ""
+        self.label.setText(f"📋 {done}/{total}　·　🎯 {focus}{mark}")
         self.adjustSize()
         self._reposition()
 
@@ -410,6 +449,11 @@ class PetChatBar(QFrame):
 class ChatWindow(QWidget):
     """完整聊天记录窗口：气泡消息 + 输入框，可指令改计划、可 AI 闲聊、可发图。"""
 
+    def paintEvent(self, event):
+        """透明顶层窗口的 QSS 背景不会画，玻璃底板在这里手动画（极光渐变）。"""
+        theme.paint_glass_background(self, QPainter(self), "aurora")
+        super().paintEvent(event)
+
     def __init__(self, win, pet):
         super().__init__(None)
         self._win = win
@@ -422,7 +466,10 @@ class ChatWindow(QWidget):
         self.setWindowFlags(
             Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
         )
+        # 玻璃质感：透明 + 亚克力模糊（失败时用不透明渐变）
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WA_StyledBackground, True)
+        theme.try_acrylic(self)
         self.setFixedSize(320, 400)
         self._position_near_pet()
 
@@ -596,14 +643,20 @@ class ChatWindow(QWidget):
         self._set_busy(True)
 
         if b64:
-            service = chat.ChatService(self._win.data.get("pet_chat"))
+            service = chat.ChatService(
+                self._win.data.get("pet_chat"),
+                context_fn=lambda: chat.task_context(self._win),
+            )
             self._worker = ChatWorker(service, text, image_b64=b64)
         else:
             handled, reply = chat.handle_command(text, self._win)
             if handled:
                 QTimer.singleShot(150, lambda: self._deliver(reply))
                 return
-            service = chat.ChatService(self._win.data.get("pet_chat"))
+            service = chat.ChatService(
+                self._win.data.get("pet_chat"),
+                context_fn=lambda: chat.task_context(self._win),
+            )
             self._worker = ChatWorker(service, text)
         self._worker.reply_ready.connect(self._deliver)
         self._worker.finished.connect(lambda: self._set_busy(False))
@@ -690,6 +743,13 @@ class PetWindow(QWidget):
         self._idle_timer = QTimer(self)
         self._idle_timer.timeout.connect(self._idle_speak)
         self._idle_timer.start(max(2, int(cfg.get("interval_min", 8))) * 60 * 1000)
+
+        # 联网 AI 闲话池：启动即后台预取一批，之后池空才补、失败冷却再试
+        self._ai_idle_lines = deque()
+        self._ai_idle_busy = False
+        self._ai_idle_cooldown_until = 0.0
+        self._ai_idle_worker = None
+        self._maybe_refill_ai_idle()
 
         # 实时媒体字幕（黑板）：独立于对话气泡，右键菜单开关 + 设置
         self._caption_cfg = win.data.setdefault("caption", dict(storage.DEFAULT_CAPTION))
@@ -1004,7 +1064,7 @@ class PetWindow(QWidget):
         ref_edit.setPlaceholderText("例：C:/Users/21495/gsvi/custom_refs/ref_sapi_zh.wav（艾莲音色的参考音频）")
         prompt_edit = QLineEdit(dlg)
         prompt_edit.setText(self._tts_cfg.get("prompt_text", ""))
-        prompt_edit.setPlaceholderText("参考音频里说的话（转写，填了音色更稳）")
+        prompt_edit.setPlaceholderText("参考音频里说的话（转写；SoVITS V3 必填，文件名【…】后的转写可直接用）")
         lang_edit = QLineEdit(dlg)
         lang_edit.setText(self._tts_cfg.get("prompt_lang", "zh"))
         form.addRow("服务启动命令", cmd_edit)
@@ -1107,15 +1167,82 @@ class PetWindow(QWidget):
         cfg = self._win.data.get("pet_idle", {})
         if not cfg.get("enabled", True):
             return
-        tasks = self._win.data["daily"].get(storage.today_str(), [])
-        pending = [t for t in tasks if not t.get("done")]
-        if pending and random.random() < 0.6:
-            text = f"还有 {len(pending)} 项计划没完成哦，一起加油！"
+        # 欠卡提醒：含「当天再打卡一次可补一天」这种必须准确的规则，保持确定性模板
+        debts = []
+        if not self._win.data.get("frozen"):
+            debts = [t for t in self._win.data.get("tasks", [])
+                     if not t.get("done") and t.get("owed", 0) > 0]
+        if debts and random.random() < 0.6:
+            names = "、".join(t.get("text", "") for t in debts[:2])
+            more = "等" if len(debts) > 2 else ""
+            total = sum(t.get("owed", 0) for t in debts)
+            text = f"喂，「{names}{more}」欠卡共 {total} 天啦，今天再打卡一次能补一天哦。"
+            if random.random() < 0.4:
+                text = random.choice(chat.DEBT_PHRASES)
+            self._maybe_refill_ai_idle()   # 顺带补一补闲话池
         else:
-            text = random.choice(chat.IDLE_PHRASES)
+            # 其余闲话：联网时用 AI 生成的多样化话术，离线/池空才用本地话术
+            text = self._pick_idle_line()
         self.speak_bubble(text)
         self._tts_speak(text)   # 语音播报（开的话，艾莲把闲话念出来）
         self._set_anim("happy", oneshot=True)  # 鼓励 → 高兴动作
+
+    # ---------- AI 闲话池 ----------
+    def _pick_idle_line(self):
+        """取一句闲话：AI 池有存货优先；池空 → 本地话术（有未完成计划时用鼓励话术）。"""
+        if self._ai_idle_lines:
+            self._maybe_refill_ai_idle()   # 还有存货 → 后台顺手补池
+            return self._ai_idle_lines.popleft()
+        self._maybe_refill_ai_idle()
+        tasks = self._win.data["daily"].get(storage.today_str(), [])
+        pending = [t for t in tasks if not t.get("done")]
+        if pending and random.random() < 0.6:
+            return f"还有 {len(pending)} 项计划没完成哦，一起加油！"
+        return random.choice(chat.IDLE_PHRASES)
+
+    def _maybe_refill_ai_idle(self):
+        """联网时后台补 AI 闲话池：池空才补一次（填 5 句），失败冷却 30 分钟再试。"""
+        if self._ai_idle_busy or self._ai_idle_lines:
+            return
+        if time.monotonic() < self._ai_idle_cooldown_until:
+            return
+        cfg = self._win.data.get("pet_chat", {})
+        if not chat.is_configured(cfg):
+            return   # 未配 Key / 已关闭 = 纯离线，永不尝试
+        service = chat.ChatService(cfg)
+        self._ai_idle_busy = True
+        self._ai_idle_worker = IdleLinesWorker(
+            service, _AI_IDLE_BATCH, self._ai_idle_context(), parent=self)
+        self._ai_idle_worker.lines_ready.connect(self._on_ai_idle_lines)
+        self._ai_idle_worker.failed.connect(self._on_ai_idle_failed)
+        self._ai_idle_worker.start()
+
+    def _ai_idle_context(self):
+        """给 AI 参考的当前状态，让它偶尔提起计划，但保持是闲话不是提醒。"""
+        data = self._win.data
+        parts = []
+        pending = sum(1 for t in data["daily"].get(storage.today_str(), []) if not t.get("done"))
+        if pending:
+            parts.append("今天还有 %d 项计划没完成" % pending)
+        if not data.get("frozen"):
+            debts = [t for t in data.get("tasks", [])
+                     if not t.get("done") and t.get("owed", 0) > 0]
+            if debts:
+                parts.append("有 %d 个长期任务欠卡" % len(debts))
+        else:
+            parts.append("计划已冻结")
+        return "；".join(parts)
+
+    def _on_ai_idle_lines(self, lines):
+        self._ai_idle_busy = False
+        for ln in lines:
+            ln = (ln or "").strip()
+            if ln and ln not in self._ai_idle_lines:
+                self._ai_idle_lines.append(ln)
+
+    def _on_ai_idle_failed(self):
+        self._ai_idle_busy = False
+        self._ai_idle_cooldown_until = time.monotonic() + _AI_IDLE_FAIL_COOLDOWN_S
 
     # ---------- 聊天记录窗 ----------
     def open_chat(self):

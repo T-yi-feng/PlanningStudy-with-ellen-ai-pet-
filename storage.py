@@ -40,7 +40,10 @@ def default_data():
         "exam_date": "",          # 空串表示未设置，如 "2026-12-19"
         "window_pos": None,       # [x, y]
         "collapsed": False,
-        "daily": {},              # {"2026-08-09": [{"text": "...", "done": false}]}
+        "daily": {},              # {"2026-08-09": [{"text": "...", "done": false}]} 一次性任务
+        "tasks": [],              # 固定任务（每日固定 = 长期目标）：见 add_fixed
+        "frozen": False,          # 全局冻结：固定任务进度/欠卡不随日期推进
+        "frozen_since": "",       # 冻结开始日期（仅展示用）
         "reminders": [],          # [{"time": "19:00", "label": "...", "enabled": true}]
         "timer": {"duration_min": 25},
         "focus_sessions": [],     # [{"date": "2026-08-09", "start": "09:00", "end": "09:25", "duration_min": 25, "period": "上午"}]（旧版倒计时遗留，保留兼容）
@@ -157,4 +160,106 @@ def delete_task(data, index):
     tasks = data["daily"].get(day, [])
     if 0 <= index < len(tasks):
         del tasks[index]
+        save_data(data)
+
+
+# ---------------------------------------------------------------- 固定任务（每日固定=长期目标）
+def _fixed_id():
+    """生成稳定任务 ID：t + 毫秒时间戳。"""
+    import time
+    return "t%d" % int(time.time() * 1000)
+
+
+def _parse_days(value):
+    """把「需几天完成」规范成 int≥1；空 / 非法 / ≤0 → 1。"""
+    try:
+        days = int(value)
+    except (TypeError, ValueError):
+        return 1
+    return days if days >= 1 else 1
+
+
+def add_fixed(data, text, desc="", target_days=1):
+    """新增固定任务：每天要做、可选简介、可选需几天完成（默认 1 天即 0/1）。"""
+    day = today_str()
+    task = {
+        "id": _fixed_id(),
+        "text": text,
+        "desc": (desc or "").strip(),
+        "target_days": _parse_days(target_days),
+        "progress": 0,
+        "owed": 0,
+        "last_done_date": day,
+        "done": False,
+    }
+    data.setdefault("tasks", []).append(task)
+    save_data(data)
+    return task["id"]
+
+
+def find_fixed(data, tid):
+    """按 id 找固定任务；找不到返回 None。"""
+    for task in data.get("tasks", []):
+        if task.get("id") == tid:
+            return task
+    return None
+
+
+def punch_fixed(data, tid):
+    """固定任务打卡：当天首次=正常 +1；再次=补卡（+1 且抵消 1 天欠卡）。
+
+    进度达到 target_days 自动标记完成。
+    """
+    task = find_fixed(data, tid)
+    if task is None or task.get("done"):
+        return False
+    day = today_str()
+    if task.get("last_done_date") == day:
+        # 补卡：抵消一天欠卡
+        task["owed"] = max(0, task.get("owed", 0) - 1)
+    task["progress"] = task.get("progress", 0) + 1
+    task["last_done_date"] = day
+    if task["progress"] >= task.get("target_days", 1):
+        task["done"] = True
+        task["owed"] = 0  # 完成后欠卡清零
+    save_data(data)
+    return True
+
+
+def rollover_fixed(data):
+    """跨日结算欠卡：跳过漏打的日子，累加 owed（封顶在 target-progress 内）。
+
+    结算点是 last_done_date；结算后把结算点推进到昨天，保证同一天重复调用
+    （如当天多次重启）不会重复累加欠卡。冻结期间跳过。
+    """
+    if data.get("frozen"):
+        return
+    day = datetime.date.today()
+    yesterday = (day - datetime.timedelta(days=1)).isoformat()
+    day_s = day.isoformat()
+    changed = False
+    for task in data.get("tasks", []):
+        if task.get("done"):
+            continue
+        last = task.get("last_done_date")
+        if not last:
+            continue
+        if last == day_s:
+            continue   # 今天已打卡：不结算、不动结算点
+        try:
+            gap = (day - datetime.date.fromisoformat(last)).days
+        except ValueError:
+            gap = 0
+        missed = max(0, gap - 1)   # 昨天打过不算欠
+        if missed > 0:
+            cap = max(0, task.get("target_days", 1) - task.get("progress", 0))
+            new_owed = min(task.get("owed", 0) + missed, cap)
+            if new_owed != task.get("owed", 0):
+                task["owed"] = new_owed
+                changed = True
+        # 结算点推进到昨天：漏打的天只算一次（同一天重启不重复累加）
+        if last != yesterday:
+            task["last_done_date"] = yesterday
+            changed = True
+    if changed:
         save_data(data)

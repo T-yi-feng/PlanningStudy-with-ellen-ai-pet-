@@ -4,13 +4,14 @@ import time
 
 import theme
 
-from PyQt5.QtCore import Qt, QRectF, QTimer, QTime
+from PyQt5.QtCore import QEasingCurve, QPropertyAnimation, Qt, QRectF, QTimer, QTime
 from PyQt5.QtGui import QColor, QFont, QPainter
 from PyQt5.QtWidgets import (
-    QApplication, QCheckBox, QDateEdit, QDialog, QDialogButtonBox, QFormLayout,
-    QFrame, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget,
-    QListWidgetItem, QMenu, QMessageBox, QProgressBar, QPushButton, QSpinBox,
-    QTabWidget, QTimeEdit, QVBoxLayout, QWidget,
+    QAbstractItemView, QApplication, QCheckBox, QDateEdit, QDialog,
+    QDialogButtonBox, QFormLayout, QFrame, QHBoxLayout, QInputDialog, QLabel,
+    QLineEdit, QListWidget, QListWidgetItem, QMenu, QMessageBox, QProgressBar,
+    QPushButton, QSpinBox, QTabWidget, QTimeEdit, QVBoxLayout, QWidget,
+    QGraphicsOpacityEffect,
 )
 
 import chat
@@ -28,19 +29,63 @@ def restyle(widget):
     widget.update()
 
 
+def fmt_minutes(minutes):
+    """把专注分钟数显示得更友好：超过 100 分钟才转成「X 小时 Y 分钟」。"""
+    m = int(round(float(minutes or 0)))
+    if m <= 100:
+        return f"{m} 分钟"
+    h, rem = divmod(m, 60)
+    if rem == 0:
+        return f"{h} 小时"
+    return f"{h} 小时 {rem} 分钟"
+
+
+def fixed_completed(task):
+    """固定任务视为已完成：打了 done 标记，或进度条已满（progress >= target_days）。
+
+    进度条满了就说明目标天数已经达到，无论 done 标记是否同步，都应计入
+    「已完成」——这同时修复了「进度条满但一键清理按钮不可用」的 bug。
+    """
+    return bool(task.get("done")) or int(task.get("progress", 0) or 0) >= max(
+        1, int(task.get("target_days", 1) or 1)
+    )
+
+
+def fixed_punched_today(task):
+    """固定任务「今日是否已打卡」：最近打卡日是今天，且真的打过。
+
+    add_fixed 时 last_done_date 就记为今天（progress=0），所以必须 progress>0
+    才能算「打过」，否则新建当天会误报成已打卡。
+    """
+    if fixed_completed(task):
+        return True
+    return (
+        task.get("last_done_date") == storage.today_str()
+        and int(task.get("progress", 0) or 0) > 0
+    )
+
+
 # ---------------------------------------------------------------- 弹窗提醒
 class ReminderPopup(QFrame):
     """到点提醒的浮窗弹窗：右上角置顶、不抢焦点、自动关闭。"""
 
     _stack = []  # 当前在屏的弹窗
 
+    def paintEvent(self, event):
+        """透明顶层窗口的 QSS 背景不会画，玻璃卡片在这里手动画。"""
+        theme.paint_glass_background(self, QPainter(self), "panel")
+        super().paintEvent(event)
+
     def __init__(self, title, message, parent=None):
         super().__init__(parent)
-        self.setObjectName("card")
+        self.setObjectName("glass_popup")
         self.setWindowFlags(
             Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
         )
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        theme.try_acrylic(self)   # 玻璃弹窗：失败时用不透明渐变，不影响外观
         self.setFixedWidth(320)
 
         layout = QVBoxLayout(self)
@@ -98,27 +143,56 @@ class ReminderPopup(QFrame):
 
 # ---------------------------------------------------------------- 今日计划任务行
 class TaskItem(QWidget):
-    def __init__(self, index, task, win, parent=None):
+    """一行任务。kind="once" 一次性；kind="fixed" 固定任务（每日固定=长期目标）。
+
+    once 按索引路由；fixed 按稳定 id 路由。
+    """
+
+    def __init__(self, kind, task, win, index=None, tid=None, parent=None):
         super().__init__(parent)
         self.setObjectName("card")
-        self._index = index
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self._kind = kind
         self._task = task
         self._win = win
+        self._index = index
+        self._tid = tid
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 6, 8, 6)
-        layout.setSpacing(8)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(8, 3, 6, 3)
+        outer.setSpacing(2)
+
+        row = QHBoxLayout()
+        row.setSpacing(6)
+        outer.addLayout(row)
 
         self.check = QCheckBox()
-        self.check.setToolTip("标记完成")
+        self.check.setToolTip("划去完成" if kind == "fixed" else "标记完成")
         self.check.setChecked(bool(task.get("done")))
         self.check.toggled.connect(self._on_toggled)
-        layout.addWidget(self.check)
+        row.addWidget(self.check)
 
         self.label = QLabel(task.get("text", ""))
         self.label.setWordWrap(True)
         self.label.setFont(QFont("Microsoft YaHei UI", 11))
-        layout.addWidget(self.label, 1)
+        row.addWidget(self.label, 1)
+
+        # 今日状态小标签
+        self.today_tag = QLabel()
+        self.today_tag.setCursor(Qt.PointingHandCursor)
+        self.today_tag.setToolTip("今日是否完成")
+        if kind == "once":
+            # 一次性任务第一行有空位（无打卡按钮）：状态标签放这里，省掉整条进度行
+            row.addWidget(self.today_tag)
+
+        if kind == "fixed":
+            self.punch_btn = QPushButton("打卡")
+            self.punch_btn.setObjectName("secondary")
+            self.punch_btn.setFixedHeight(24)
+            self.punch_btn.setToolTip("今天完成一次；当天再点一次=补卡，抵消一天欠卡")
+            self.punch_btn.setCursor(Qt.PointingHandCursor)
+            self.punch_btn.clicked.connect(self._on_punch)
+            row.addWidget(self.punch_btn)
 
         self.edit_btn = QPushButton("✎")
         self.edit_btn.setObjectName("ghost_icon")
@@ -126,7 +200,7 @@ class TaskItem(QWidget):
         self.edit_btn.setToolTip("编辑此任务")
         self.edit_btn.setCursor(Qt.PointingHandCursor)
         self.edit_btn.clicked.connect(self._on_edit)
-        layout.addWidget(self.edit_btn)
+        row.addWidget(self.edit_btn)
 
         self.del_btn = QPushButton("✕")
         self.del_btn.setObjectName("danger_icon")
@@ -134,12 +208,36 @@ class TaskItem(QWidget):
         self.del_btn.setToolTip("删除此任务")
         self.del_btn.setCursor(Qt.PointingHandCursor)
         self.del_btn.clicked.connect(self._on_delete)
-        layout.addWidget(self.del_btn)
+        row.addWidget(self.del_btn)
+
+        # 进度行：固定任务 X/N + 今日状态标签；一次性任务由第一行标签表达，整行隐藏
+        prog_row = QHBoxLayout()
+        prog_row.setSpacing(6)
+        outer.addLayout(prog_row)
+        self.progress = QProgressBar()
+        self.progress.setTextVisible(False)
+        self.progress.setFixedHeight(6)
+        self.frac_lbl = QLabel()
+        self.frac_lbl.setObjectName("subtitle")
+        if kind == "once":
+            self.progress.hide()
+            self.frac_lbl.hide()
+            prog_row.addWidget(self.frac_lbl)
+        else:
+            prog_row.addWidget(self.today_tag)   # 固定任务第一行已被打卡/编辑/删除占满
+            prog_row.addWidget(self.progress, 1)
+            prog_row.addWidget(self.frac_lbl)
+
+        self.desc_lbl = QLabel()
+        self.desc_lbl.setObjectName("subtitle")
+        self.desc_lbl.setWordWrap(True)
+        self.desc_lbl.setVisible(False)
+        outer.addWidget(self.desc_lbl)
 
         self._apply_done_state()
 
     def _apply_done_state(self):
-        done = bool(self._task.get("done"))
+        done = fixed_completed(self._task) if self._kind == "fixed" else bool(self._task.get("done"))
         self.check.setChecked(done)
         f = self.label.font()
         f.setStrikeOut(done)
@@ -148,20 +246,82 @@ class TaskItem(QWidget):
             # 已完成：置灰并加删除线
             self.label.setStyleSheet("color: #8A8F98;")
         else:
-            # 未完成：清除内联样式，使用主题默认文字颜色（color: transparent 会完全隐形）
+            # 未完成：清除内联样式，使用主题默认文字颜色
             self.label.setStyleSheet("")
 
+        if self._kind == "once":
+            self.progress.setRange(0, 1)
+            self.progress.setValue(1 if done else 0)
+            self.frac_lbl.setText("1/1" if done else "0/1")
+        else:
+            total = max(int(self._task.get("target_days", 1) or 1), 1)
+            prog = int(self._task.get("progress", 0) or 0)
+            self.progress.setRange(0, total)
+            self.progress.setValue(min(prog, total))
+            self.frac_lbl.setText(f"{prog}/{total}")
+            desc = (self._task.get("desc") or "").strip()
+            self.desc_lbl.setVisible(bool(desc))
+            if desc:
+                self.desc_lbl.setText(desc)
+
+        # 今日状态标签文案 + 样式（一次性看 done；固定任务看「今日是否已打卡」）
+        if self._kind == "fixed":
+            if fixed_completed(self._task):
+                text, obj = "✓ 已完成", "today_tag_done"
+            elif fixed_punched_today(self._task):
+                text, obj = "✓ 今日已打卡", "today_tag_done"
+            elif self._win.data.get("frozen"):
+                text, obj = "❄ 冻结中", "today_tag_todo"
+            else:
+                text, obj = "○ 今日未打卡", "today_tag_todo"
+        else:
+            text, obj = ("✓ 已完成", "today_tag_done") if done else ("○ 未完成", "today_tag_todo")
+        self.today_tag.setText(text)
+        if self.today_tag.objectName() != obj:
+            self.today_tag.setObjectName(obj)
+            restyle(self.today_tag)
+
+        # 冻结：固定任务禁用打卡与勾选（已完成的保留操作，方便删除）
+        if self._kind == "fixed":
+            disabled = bool(self._win.data.get("frozen")) and not done
+            self.punch_btn.setEnabled(not disabled)
+            self.check.setEnabled(not disabled)
+
     def _on_toggled(self, checked):
+        if self._kind == "fixed" and self._tid is not None:
+            task = storage.find_fixed(self._win.data, self._tid)
+            if task is None:
+                return
+            task["done"] = checked
+            if checked:
+                task["owed"] = 0   # 提前划去完成，欠卡清零
+            self._win.save()
+            self._apply_done_state()
+            self._win.update_header()
+            return
         self._task["done"] = checked
         self._win.save()
         self._apply_done_state()
         self._win.update_header()
 
+    def _on_punch(self):
+        if self._kind != "fixed" or self._tid is None:
+            return
+        if self._win.data.get("frozen"):
+            return
+        self._win.punch_fixed_task(self._tid)
+
     def _on_delete(self):
-        self._win.delete_task(self._index)
+        if self._kind == "fixed" and self._tid is not None:
+            self._win.delete_fixed_task(self._tid)
+        else:
+            self._win.delete_task(self._index)
 
     def _on_edit(self):
-        self._win.edit_task(self._index)
+        if self._kind == "fixed" and self._tid is not None:
+            self._win.edit_fixed_task(self._tid)
+        else:
+            self._win.edit_task(self._index)
 
     def mouseDoubleClickEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -180,20 +340,58 @@ class TaskItem(QWidget):
         if chosen == edit_action:
             self._on_edit()
         elif chosen == done_action:
-            self.check.setChecked(not self._task.get("done"))
+            if self._kind == "fixed" and self._win.data.get("frozen") and not self._task.get("done"):
+                pass   # 冻结中不允许手动划去未完成固定任务
+            else:
+                self.check.setChecked(not self._task.get("done"))
         elif chosen == del_action:
-            self._win.delete_task(self._index)
+            self._on_delete()
 
 
 # ---------------------------------------------------------------- 今日计划页签
+class FixedTaskDialog(QDialog):
+    """添加/编辑固定任务：内容 + 可选简介 + 需几天完成。"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("添加固定任务")
+        self.setMinimumWidth(320)
+        form = QFormLayout(self)
+        form.setSpacing(10)
+
+        self.text_edit = QLineEdit()
+        self.text_edit.setPlaceholderText("如：背单词")
+        form.addRow("内容", self.text_edit)
+
+        self.desc_edit = QLineEdit()
+        self.desc_edit.setPlaceholderText("可选，如：每天 50 个")
+        form.addRow("简介", self.desc_edit)
+
+        self.days_spin = QSpinBox()
+        self.days_spin.setRange(1, 9999)
+        self.days_spin.setValue(1)
+        self.days_spin.setSuffix(" 天")
+        form.addRow("需几天完成", self.days_spin)
+
+        btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        btns.accepted.connect(self.accept)
+        btns.rejected.connect(self.reject)
+        form.addRow(btns)
+
+        self.text_edit.setFocus()
+
+    def result_data(self):
+        return self.text_edit.text().strip(), self.desc_edit.text().strip(), self.days_spin.value()
+
+
 class PlanTab(QWidget):
     def __init__(self, win, parent=None):
         super().__init__(parent)
         self._win = win
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(4, 6, 4, 4)
-        layout.setSpacing(8)
+        layout.setContentsMargins(4, 5, 4, 2)
+        layout.setSpacing(6)
 
         row = QHBoxLayout()
         self.input = QLineEdit()
@@ -204,10 +402,26 @@ class PlanTab(QWidget):
         add_btn.setObjectName("primary")
         add_btn.clicked.connect(self._add)
         row.addWidget(add_btn)
+        fixed_btn = QPushButton("＋固定")
+        fixed_btn.setObjectName("secondary")
+        fixed_btn.setToolTip("添加固定任务（每日固定 = 长期目标）：可加简介、可设需几天完成")
+        fixed_btn.clicked.connect(self._add_fixed)
+        row.addWidget(fixed_btn)
         layout.addLayout(row)
 
+        # 冻结 / 欠卡横幅
+        self.banner_lbl = QLabel()
+        self.banner_lbl.setObjectName("subtitle")
+        self.banner_lbl.setWordWrap(True)
+        self.banner_lbl.setStyleSheet("color: #E6A23C;")
+        self.banner_lbl.setVisible(False)
+        layout.addWidget(self.banner_lbl)
+
         self.list = QListWidget()
-        self.list.setSpacing(4)
+        self.list.setSpacing(3)
+        self.list.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
+        self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.list.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         layout.addWidget(self.list, 1)
 
         self.empty_lbl = QLabel("今天还没有计划\n先写下一个最小可完成任务")
@@ -223,9 +437,17 @@ class PlanTab(QWidget):
         self.progress.setTextVisible(False)
         self.progress.setFixedHeight(8)
         bottom.addWidget(self.progress, 1)
+        self.freeze_btn = QPushButton("❄ 冻结")
+        self.freeze_btn.setObjectName("secondary")
+        self.freeze_btn.setFixedHeight(26)
+        self.freeze_btn.setCheckable(True)
+        self.freeze_btn.setToolTip("有事暂停：冻结长期任务进度与欠卡，解冻后不补欠卡")
+        self.freeze_btn.toggled.connect(self._on_freeze_toggled)
+        bottom.addWidget(self.freeze_btn)
         self.clear_done_btn = QPushButton("清理已完成")
         self.clear_done_btn.setObjectName("secondary")
-        self.clear_done_btn.setToolTip("删除今天所有已完成任务")
+        self.clear_done_btn.setFixedHeight(26)
+        self.clear_done_btn.setToolTip("删除所有已完成任务（一次性 + 固定）")
         self.clear_done_btn.clicked.connect(self._clear_done)
         bottom.addWidget(self.clear_done_btn)
         layout.addLayout(bottom)
@@ -243,45 +465,121 @@ class PlanTab(QWidget):
         self.refresh()
         self._win.update_header()
 
+    def _add_fixed(self):
+        dlg = FixedTaskDialog(self)
+        if dlg.exec_() != QDialog.Accepted:
+            return
+        text, desc, days = dlg.result_data()
+        if not text:
+            QMessageBox.information(self, "添加固定任务", "任务内容不能为空。")
+            return
+        self._win.pet_add_fixed_task(text, desc, days)
+
+    def _on_freeze_toggled(self, checked):
+        self._win.pet_freeze_tasks(checked)
+
+    def _update_banner(self):
+        data = self._win.data
+        frozen = bool(data.get("frozen"))
+        debts = [t for t in data.get("tasks", [])
+                 if not t.get("done") and t.get("owed", 0) > 0]
+        msgs = []
+        if frozen:
+            since = data.get("frozen_since") or ""
+            msgs.append("❄ 任务已冻结" + (f"（自 {since}）" if since else ""))
+        if debts:
+            total_owed = sum(t.get("owed", 0) for t in debts)
+            names = "、".join(t.get("text", "") for t in debts[:2])
+            more = "等" if len(debts) > 2 else ""
+            msgs.append(
+                f"⚠ {len(debts)} 个长期任务欠卡共 {total_owed} 天"
+                f"（{names}{more}），当天再打卡一次可抵消一天")
+        self.banner_lbl.setText("   |  ".join(msgs))
+        self.banner_lbl.setVisible(bool(msgs))
+
     def _clear_done(self):
         day = storage.today_str()
         tasks = self._win.data["daily"].get(day, [])
-        done_count = sum(1 for t in tasks if t.get("done"))
-        if done_count <= 0:
+        fixed = self._win.data.get("tasks", [])
+        once_done = sum(1 for t in tasks if t.get("done"))
+        fixed_done = sum(1 for t in fixed if fixed_completed(t))
+        if once_done <= 0 and fixed_done <= 0:
             return
         reply = QMessageBox.question(
             self,
             "清理已完成任务",
-            f"确定删除今天 {done_count} 项已完成任务吗？",
+            f"确定删除 {once_done} 项已完成一次性任务和 {fixed_done} 项已完成固定任务吗？",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
         if reply != QMessageBox.Yes:
             return
         self._win.data["daily"][day] = [t for t in tasks if not t.get("done")]
+        self._win.data["tasks"] = [t for t in fixed if not fixed_completed(t)]
         self._win.save()
         self.refresh()
         self._win.update_header()
 
+    def _make_section(self, title, count, object_name):
+        """返回 (item, widget)：不可选中的分栏标题行。"""
+        w = QWidget()
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(0, 3, 0, 1)
+        lbl = QLabel(f"{title}　{count}")
+        lbl.setObjectName(object_name)
+        lay.addWidget(lbl)
+        item = QListWidgetItem()
+        item.setFlags(Qt.NoItemFlags)
+        item.setSizeHint(w.sizeHint())
+        return item, w
+
     def refresh(self):
         day = storage.ensure_today(self._win.data)
         tasks = self._win.data["daily"][day]
-        self.list.clear()
-        for i, task in enumerate(tasks):
-            item_widget = TaskItem(i, task, self._win)
-            item = QListWidgetItem()
-            item.setSizeHint(item_widget.sizeHint())
-            self.list.addItem(item)
-            self.list.setItemWidget(item, item_widget)
+        fixed = self._win.data.get("tasks", [])
 
-        done = sum(1 for t in tasks if t.get("done"))
-        total = len(tasks)
+        self.list.clear()
+        # 分栏：一次性任务 / 固定任务分开，各自带标题，不再堆成一堆
+        if tasks:
+            item, w = self._make_section("📋 今日临时任务", len(tasks), "section_header")
+            self.list.addItem(item)
+            self.list.setItemWidget(item, w)
+            for i, task in enumerate(tasks):
+                item_widget = TaskItem("once", task, self._win, index=i)
+                item = QListWidgetItem()
+                item.setSizeHint(item_widget.sizeHint())
+                self.list.addItem(item)
+                self.list.setItemWidget(item, item_widget)
+        if fixed:
+            item, w = self._make_section("🎯 长期固定任务（每日打卡）", len(fixed), "section_header_fixed")
+            self.list.addItem(item)
+            self.list.setItemWidget(item, w)
+            for task in fixed:
+                item_widget = TaskItem("fixed", task, self._win, tid=task.get("id"))
+                item = QListWidgetItem()
+                item.setSizeHint(item_widget.sizeHint())
+                self.list.addItem(item)
+                self.list.setItemWidget(item, item_widget)
+
+        # 底部进度：已完成 = 一次性 done + 固定「完成」（进度条满或 done 标记）
+        # 只有真正完成的任务才计入，进度条满 ⇔ 一键清理可用（修复原 bug）
+        once_done = sum(1 for t in tasks if t.get("done"))
+        fixed_done = sum(1 for t in fixed if fixed_completed(t))
+        done = once_done + fixed_done
+        total = len(tasks) + len(fixed)
+
         self.list.setVisible(total > 0)
         self.empty_lbl.setVisible(total == 0)
         self.progress_lbl.setText(f"已完成 {done}/{total}")
         self.progress.setRange(0, max(total, 1))
         self.progress.setValue(done)
         self.clear_done_btn.setEnabled(done > 0)
+
+        # 冻结按钮 + 横幅
+        self.freeze_btn.blockSignals(True)
+        self.freeze_btn.setChecked(bool(self._win.data.get("frozen")))
+        self.freeze_btn.blockSignals(False)
+        self._update_banner()
 
 
 # ---------------------------------------------------------------- 专注计时页签（正计时）
@@ -496,7 +794,7 @@ class TimerTab(QWidget):
         day_hist = hist.get(storage.today_str(), {})
         total_min = int(round(sum(day_hist.values())))
         active = sum(1 for v in day_hist.values() if v > 0)
-        self.today_stats_lbl.setText(f"{total_min} 分钟 · {active} 个活跃时段")
+        self.today_stats_lbl.setText(f"{fmt_minutes(total_min)} · {active} 个活跃时段")
 
     def _open_stats_tab(self):
         self._win.tabs.setCurrentIndex(3)
@@ -509,7 +807,7 @@ class FocusHistogram(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumHeight(190)
+        self.setMinimumHeight(120)
         self._minutes = [0.0] * 24
 
     def set_minutes(self, minutes_list):
@@ -520,14 +818,22 @@ class FocusHistogram(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         dark = getattr(theme, "current", "light") == "dark"
-        bg = QColor("#202228") if dark else QColor("#FBFAF7")
-        track = QColor("#2C2F36") if dark else QColor("#EFEAE1")
-        bar = QColor("#5B8DEF") if dark else QColor("#2563EB")
-        axis = QColor("#555B66") if dark else QColor("#C3BBAE")
-        text = QColor("#A9ADB7") if dark else QColor("#6E716C")
+        bg = QColor(10, 14, 24, 70) if dark else QColor(255, 255, 255, 55)
+        track = QColor(255, 255, 255, 40) if dark else QColor(255, 255, 255, 120)
+        bar = QColor("#5B8DEF") if dark else QColor("#4F8BFF")
+        axis = QColor("#8A94A8") if dark else QColor("#B9C2D4")
+        text = QColor("#A9ADB7") if dark else QColor("#5B6472")
 
         w, h = self.width(), self.height()
-        p.fillRect(self.rect(), bg)
+        p.setBrush(bg)
+        p.setPen(Qt.NoPen)
+        p.drawRoundedRect(0, 0, w, h, 10, 10)
+        p.setPen(QColor(255, 255, 255, 24) if dark else QColor(255, 255, 255, 190))
+        p.setBrush(Qt.NoBrush)
+        p.drawRoundedRect(0, 0, w - 1, h - 1, 10, 10)
+        # 玻璃顶部反光：一条淡淡的亮线
+        p.setPen(QColor(255, 255, 255, 60) if dark else QColor(255, 255, 255, 230))
+        p.drawLine(8, 1, w - 8, 1)
 
         margin_l, margin_r, margin_t, margin_b = 28, 8, 20, 22
         plot_w = w - margin_l - margin_r
@@ -583,10 +889,12 @@ class FocusHistogram(QWidget):
             Qt.AlignRight | Qt.AlignVCenter,
             "0",
         )
+        # Y 轴最大值：分钟太多时转成「X.X 时」，刻度栏才放得下
+        y_max_lbl = f"{max_min:g}分" if max_min < 100 else f"{max_min / 60.0:.1f}时"
         p.drawText(
             QRectF(0, margin_t - 6, margin_l - 4, 16),
             Qt.AlignRight | Qt.AlignVCenter,
-            f"{max_min:g}分",
+            y_max_lbl,
         )
 
         # 当前小时高亮标记（仅今天）
@@ -599,7 +907,9 @@ class FocusHistogram(QWidget):
 
 
 class StatsTab(QWidget):
-    """专注统计页签：◀/▶ 切换日期，展示该天 24 小时专注分布直方图。"""
+    """专注统计页签：◀/▶ 切换日期看当天直方图，下方是最近 10 天的每天学习时间统计。"""
+
+    _DAILY_DAYS = 10   # 最近 N 天的每天学习时间
 
     def __init__(self, win, parent=None):
         super().__init__(parent)
@@ -637,6 +947,34 @@ class StatsTab(QWidget):
         self.summary_lbl.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.summary_lbl)
 
+        # ---- 最近 N 天：每天学习时间统计 ----
+        daily_card = QFrame()
+        daily_card.setObjectName("card")
+        daily_lay = QVBoxLayout(daily_card)
+        daily_lay.setContentsMargins(8, 6, 8, 6)
+        daily_lay.setSpacing(4)
+
+        daily_head = QHBoxLayout()
+        daily_title = QLabel("📅 每天学习时间")
+        daily_title.setObjectName("subtitle")
+        daily_title.setStyleSheet("font-weight: bold; font-size: 12px;")
+        daily_head.addWidget(daily_title)
+        daily_head.addStretch(1)
+        daily_lay.addLayout(daily_head)
+
+        self.daily_summary_lbl = QLabel()
+        self.daily_summary_lbl.setObjectName("accent")
+        self.daily_summary_lbl.setStyleSheet("font-size: 12px;")
+        daily_lay.addWidget(self.daily_summary_lbl)
+
+        self.daily_list = QListWidget()
+        self.daily_list.setSpacing(1)
+        self.daily_list.setMaximumHeight(92)
+        daily_lay.addWidget(self.daily_list)
+
+        self.daily_card = daily_card
+        layout.addWidget(daily_card)
+
         layout.addStretch(1)
         self.refresh()
 
@@ -644,6 +982,33 @@ class StatsTab(QWidget):
         today = datetime.date.today()
         self._day = min(self._day + datetime.timedelta(days=delta), today)
         self.refresh()
+
+    def _day_row(self, date_obj, minutes, max_min, is_today):
+        """一天一行：日期 + 迷你进度条 + 时长（超过 100 分钟转小时）。"""
+        w = QWidget()
+        h = QHBoxLayout(w)
+        h.setContentsMargins(4, 0, 4, 0)
+        h.setSpacing(6)
+
+        d = QLabel(f"{date_obj.month:02d}-{date_obj.day:02d} 周{WEEKDAY_CN[date_obj.weekday()][2]}")
+        d.setObjectName("accent" if is_today else "subtitle")
+        d.setFixedWidth(82)
+        h.addWidget(d)
+
+        bar = QProgressBar()
+        bar.setTextVisible(False)
+        bar.setFixedHeight(5)
+        bar.setRange(0, max(int(max_min), 1))
+        bar.setValue(int(round(minutes)))
+        h.addWidget(bar, 1)
+
+        t = QLabel("—" if minutes <= 0 else fmt_minutes(minutes))
+        t.setObjectName("day_total_peak" if minutes > 0 and minutes >= max_min else "day_total")
+        t.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        t.setFixedWidth(76)
+        h.addWidget(t)
+
+        return w
 
     def refresh(self):
         today = datetime.date.today()
@@ -664,8 +1029,34 @@ class StatsTab(QWidget):
         else:
             peak = max(range(24), key=lambda i: minutes[i])
             self.summary_lbl.setText(
-                f"共 {total} 分钟 · 分布在 {active} 个小时段 · 高峰时段 {peak}:00"
+                f"共 {fmt_minutes(total)} · 分布在 {active} 个小时段 · 高峰时段 {peak}:00"
             )
+
+        # 最近 N 天的每天学习时间
+        days = [today - datetime.timedelta(days=i) for i in range(self._DAILY_DAYS - 1, -1, -1)]
+        totals = [sum(hist.get(d.isoformat(), {}).values()) for d in days]
+        grand = int(round(sum(totals)))
+        active_days = sum(1 for x in totals if x > 0)
+        avg = int(round(grand / active_days)) if active_days else 0
+        streak = 0
+        for x in reversed(totals):
+            if x > 0:
+                streak += 1
+            else:
+                break
+        self.daily_summary_lbl.setText(
+            f"近 {self._DAILY_DAYS} 天共 {fmt_minutes(grand)} · 日均 {fmt_minutes(avg)} · 连续 {streak} 天"
+        )
+
+        max_min = max(totals) if totals else 0
+        self.daily_list.clear()
+        for i, d in enumerate(days):
+            row = self._day_row(d, totals[i], max_min, d == today)
+            item = QListWidgetItem()
+            item.setFlags(Qt.ItemIsEnabled)
+            item.setSizeHint(row.sizeHint())
+            self.daily_list.addItem(item)
+            self.daily_list.setItemWidget(item, row)
 
 
 # ---------------------------------------------------------------- 提醒页签
@@ -673,6 +1064,7 @@ class ReminderRow(QWidget):
     def __init__(self, index, reminder, win, parent=None):
         super().__init__(parent)
         self.setObjectName("card")
+        self.setAttribute(Qt.WA_StyledBackground, True)
         self._index = index
         self._reminder = reminder
         self._win = win
@@ -958,17 +1350,29 @@ class SettingsDialog(QDialog):
 
 # ---------------------------------------------------------------- 主浮窗
 class FloatWindow(QWidget):
+    def paintEvent(self, event):
+        """透明顶层窗口的 QSS 背景不会画，玻璃底板在这里手动画（极光渐变）。"""
+        theme.paint_glass_background(self, QPainter(self), "aurora")
+        super().paintEvent(event)
+
     def __init__(self):
         super().__init__(None)
         self.data = storage.load_data()
         storage.ensure_today(self.data)
+        storage.rollover_fixed(self.data)   # 启动时结算长期任务欠卡（冻结自动跳过）
 
         self.setWindowFlags(
             Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
         )
-        self.setAttribute(Qt.WA_TranslucentBackground, False)
-        self.setObjectName("float_window")
-        self.setFixedWidth(320)
+        # 玻璃质感：透明窗口 + Windows 亚克力模糊；亚克力不可用时回退到不透明渐变
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setObjectName(
+            "float_window_acrylic" if theme.try_acrylic(self) else "float_window"
+        )
+        # A slightly wider canvas prevents the four primary areas from feeling
+        # cramped, while remaining a compact desktop companion.
+        self.setFixedWidth(380)
 
         self._collapsed = bool(self.data.get("collapsed", False))
         self._drag_offset = None
@@ -1018,7 +1422,7 @@ class FloatWindow(QWidget):
         header_layout.setSpacing(8)
 
         top_row = QHBoxLayout()
-        title = QLabel("📚 考研复习")
+        title = QLabel("考研复习")
         title.setObjectName("title")
         top_row.addWidget(title)
         top_row.addStretch(1)
@@ -1051,7 +1455,7 @@ class FloatWindow(QWidget):
         info_row.addWidget(self.progress_lbl)
         header_layout.addLayout(info_row)
 
-        self.settings_btn = QPushButton("⚙ 设置")
+        self.settings_btn = QPushButton("设置")
         self.settings_btn.setObjectName("header_button")
         self.settings_btn.setFixedHeight(28)
         self.settings_btn.setCursor(Qt.PointingHandCursor)
@@ -1060,17 +1464,47 @@ class FloatWindow(QWidget):
 
         root.addWidget(self.header)
 
-        # 页签
+        # 页签（透明页，露出玻璃背景）
         self.tabs = QTabWidget()
+        self.tabs.setObjectName("main_tabs")
         self.plan_tab = PlanTab(self)
+        self.plan_tab.setObjectName("plan_tab")
         self.timer_tab = TimerTab(self)
+        self.timer_tab.setObjectName("timer_tab")
         self.reminder_tab = ReminderTab(self)
+        self.reminder_tab.setObjectName("reminder_tab")
         self.stats_tab = StatsTab(self)
+        self.stats_tab.setObjectName("stats_tab")
         self.tabs.addTab(self.plan_tab, "今日计划")
         self.tabs.addTab(self.timer_tab, "专注计时")
         self.tabs.addTab(self.reminder_tab, "提醒")
         self.tabs.addTab(self.stats_tab, "专注统计")
+        self.tabs.currentChanged.connect(self._animate_tab_change)
+        self._tab_fade = None
         root.addWidget(self.tabs, 1)
+
+    def _animate_tab_change(self, index):
+        """A short, interruptible fade makes navigation feel deliberate.
+
+        It is intentionally subtle (140ms) so focus workflows stay instant and
+        keyboard navigation remains unaffected.
+        """
+        page = self.tabs.widget(index)
+        if page is None:
+            return
+        effect = page.graphicsEffect()
+        if not isinstance(effect, QGraphicsOpacityEffect):
+            effect = QGraphicsOpacityEffect(page)
+            page.setGraphicsEffect(effect)
+        if self._tab_fade is not None:
+            self._tab_fade.stop()
+        effect.setOpacity(0.72)
+        self._tab_fade = QPropertyAnimation(effect, b"opacity", page)
+        self._tab_fade.setDuration(140)
+        self._tab_fade.setStartValue(0.72)
+        self._tab_fade.setEndValue(1.0)
+        self._tab_fade.setEasingCurve(QEasingCurve.OutCubic)
+        self._tab_fade.start()
 
     # ---------- 头部信息 ----------
     def update_header(self):
@@ -1092,10 +1526,15 @@ class FloatWindow(QWidget):
                 today.strftime("%Y-%m-%d") + " " + WEEKDAY_CN[today.weekday()]
             )
 
-        tasks = self.data["daily"].get(storage.today_str(), [])
+        today = storage.today_str()
+        tasks = self.data["daily"].get(today, [])
         done = sum(1 for t in tasks if t.get("done"))
         total = len(tasks)
-        self.progress_lbl.setText(f"今日 {done}/{total}")
+        # 固定任务：已 done 或今天已打卡计入已完成
+        fixed = self.data.get("tasks", [])
+        fixed_done = sum(1 for t in fixed if t.get("done") or t.get("last_done_date") == today)
+        prefix = "❄ " if self.data.get("frozen") else ""
+        self.progress_lbl.setText(f"{prefix}今日 {done + fixed_done}/{total + len(fixed)}")
 
     # ---------- 折叠 ----------
     def _apply_collapsed(self):
@@ -1173,6 +1612,167 @@ class FloatWindow(QWidget):
         self.data["window_pos"] = [self.x(), self.y()]
         self.save()
 
+    # ---------- 固定任务操作 ----------
+    def delete_fixed_task(self, tid):
+        task = storage.find_fixed(self.data, tid)
+        if task is None:
+            return
+        text = task.get("text", "任务")
+        reply = QMessageBox.question(
+            self,
+            "删除固定任务",
+            f"确定删除「{text}」吗？",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+        self.data["tasks"] = [t for t in self.data.get("tasks", []) if t.get("id") != tid]
+        self.save()
+        self.plan_tab.refresh()
+        self.update_header()
+
+    def edit_fixed_task(self, tid):
+        task = storage.find_fixed(self.data, tid)
+        if task is None:
+            return
+        dlg = FixedTaskDialog(self)
+        dlg.setWindowTitle("编辑固定任务")
+        dlg.text_edit.setText(task.get("text", ""))
+        dlg.desc_edit.setText(task.get("desc", ""))
+        dlg.days_spin.setValue(max(1, int(task.get("target_days", 1) or 1)))
+        if dlg.exec_() != QDialog.Accepted:
+            return
+        text, desc, days = dlg.result_data()
+        if not text:
+            QMessageBox.information(self, "编辑固定任务", "任务内容不能为空。")
+            return
+        task["text"] = text
+        task["desc"] = desc
+        task["target_days"] = days
+        if task.get("progress", 0) >= days:   # 新天数已达标 → 直接完成
+            task["done"] = True
+            task["owed"] = 0
+        self.save()
+        self.plan_tab.refresh()
+        self.update_header()
+
+    def punch_fixed_task(self, tid):
+        """UI「打卡」按钮：真正打卡/补卡。"""
+        if self.data.get("frozen"):
+            return "任务已冻结，暂时不能打卡哦～"
+        if storage.punch_fixed(self.data, tid):
+            self.plan_tab.refresh()
+            self.update_header()
+            self._refresh_pet_status()
+            return "打卡成功 ✅"
+        return "没找到这个固定任务，或它已经完成啦～"
+
+    def pet_add_fixed_task(self, text, desc="", days=1):
+        text = (text or "").strip()
+        if not text:
+            return "固定任务内容不能为空，说「添加长期任务 背单词 30天」试试～"
+        try:
+            days = int(days)
+        except (TypeError, ValueError):
+            days = 1
+        if days < 1:
+            days = 1
+        storage.add_fixed(self.data, text, desc, days)
+        self.plan_tab.refresh()
+        self.update_header()
+        self._refresh_pet_status()
+        return f"好，长期任务「{text}」建好啦（每天打卡，{days} 天完成）✅"
+
+    def pet_freeze_tasks(self, on):
+        """冻结/解冻：冻结跳过欠卡积累并禁用打卡；解冻重置 last_done_date=today。"""
+        on = bool(on)
+        data = self.data
+        if bool(data.get("frozen")) == on:
+            self.plan_tab.refresh()
+            if on:
+                return "任务已经在冻结状态啦，说「解冻任务」就能恢复～"
+            return "任务没有冻结哦～"
+        data["frozen"] = on
+        if on:
+            data["frozen_since"] = storage.today_str()
+        else:
+            today = storage.today_str()
+            for t in data.get("tasks", []):
+                if not t.get("done"):
+                    t["last_done_date"] = today   # 冻结期不产生欠卡
+            data["frozen_since"] = ""
+        self.save()
+        self.plan_tab.refresh()
+        self.update_header()
+        self._refresh_pet_status()
+        if on:
+            return "长期任务已冻结 ❄ 进度和欠卡都先冻住，解冻后也不补欠卡。忙你的～"
+        return "解冻啦！长期任务恢复正常打卡 📅"
+
+    def pet_punch_task(self, name):
+        """聊天指令「打卡 <任务名>」：模糊匹配未完成固定任务并打卡/补卡。"""
+        name = (name or "").strip()
+        if self.data.get("frozen"):
+            return "任务已冻结，暂时不能打卡哦～"
+        fixed = [t for t in self.data.get("tasks", []) if not t.get("done")]
+        if not fixed:
+            return "现在没有进行中的长期任务。说「添加长期任务 背单词 30天」建一个～"
+        matched = [t for t in fixed
+                   if name == t.get("text") or (len(name) >= 2 and name in t.get("text", ""))]
+        if not matched and len(name) >= 2:
+            matched = [
+                t for t in fixed
+                if sum(1 for ch in name if ch in t.get("text", "")) >= max(2, len(name) // 2)
+            ]
+        if not matched:
+            return f"没找到「{name}」这个长期任务。可以说「长期任务进度」看看有哪些～"
+        if len(matched) > 1:
+            names = "、".join(t.get("text", "") for t in matched)
+            return f"「{name}」匹配到好几个：{names}，说具体一点～"
+        t = matched[0]
+        already = t.get("last_done_date") == storage.today_str()
+        storage.punch_fixed(self.data, t["id"])
+        self.plan_tab.refresh()
+        self.update_header()
+        self._refresh_pet_status()
+        action = "补卡" if already else "打卡"
+        return f"「{t['text']}」{action}成功！进度 {t.get('progress', 0)}/{t.get('target_days', 1)}"
+
+    def pet_debt_report(self):
+        """聊天指令「欠卡/长期任务进度」：汇报欠卡与进行中任务。"""
+        data = self.data
+        if data.get("frozen"):
+            since = data.get("frozen_since") or ""
+            return "任务已冻结，欠卡暂不计时。" + (f"（自 {since} 起冻结）" if since else "")
+        fixed = data.get("tasks", [])
+        active = [t for t in fixed if not t.get("done")]
+        debts = [t for t in active if t.get("owed", 0) > 0]
+        if not active:
+            return "现在没有进行中的长期任务～"
+        lines = []
+        if debts:
+            total_owed = sum(t.get("owed", 0) for t in debts)
+            lines.append(f"⚠ 有 {len(debts)} 个长期任务欠卡共 {total_owed} 天：")
+            for t in debts:
+                lines.append(
+                    f"  {t.get('text', '')}：欠 {t.get('owed', 0)} 天，"
+                    f"进度 {t.get('progress', 0)}/{t.get('target_days', 1)}")
+            lines.append("当天再打卡一次（第 2 次）就能抵消一天欠卡。")
+        else:
+            lines.append("当前没有欠卡，全部按时打卡 👍")
+        lines.append("进行中：")
+        for t in active:
+            lines.append(
+                f"  {t.get('text', '')} {t.get('progress', 0)}/{t.get('target_days', 1)}"
+                + (f"（欠 {t.get('owed', 0)} 天）" if t.get("owed", 0) else ""))
+        return "\n".join(lines)
+
+    def _refresh_pet_status(self):
+        pet = getattr(self, "_pet", None)
+        if pet is not None:
+            pet.refresh_status()
+
     # ---------- 桌宠指令操作 ----------
     def pet_add_task(self, text):
         text = (text or "").strip()
@@ -1199,30 +1799,51 @@ class FloatWindow(QWidget):
         return f"好耶，一次划掉 {len(pending)} 项！今天超高效 💪"
 
     def pet_complete_task(self, name):
+        """聊天指令「划掉 <任务名>」：先匹配一次性任务，再匹配固定任务（提前划去完成）。"""
         name = (name or "").strip()
         day = storage.today_str()
         tasks = self.data["daily"].get(day, [])
         pending = [t for t in tasks if not t.get("done")]
-        if not pending:
+        fixed_pending = [t for t in self.data.get("tasks", []) if not t.get("done")]
+        if not pending and not fixed_pending:
             return "今天没有未完成的任务啦，很棒！"
-        matched = [t for t in pending if name == t["text"] or (len(name) >= 2 and name in t["text"])]
-        if not matched and len(name) >= 2:
-            # 宽松匹配：任务文字包含用户输入中足够多的字
-            matched = [
-                t for t in pending
-                if sum(1 for ch in name if ch in t["text"]) >= max(2, len(name) // 2)
-            ]
-        if not matched:
-            return f"没找到「{name}」这个未完成任务。可以说「列出计划」看看有哪些～"
-        if len(matched) > 1:
-            names = "、".join(t["text"] for t in matched)
-            return f"「{name}」匹配到好几项：{names}，能说得再具体点吗？"
-        t = matched[0]
-        t["done"] = True
-        self.save()
-        self.plan_tab.refresh()
-        self.update_header()
-        return f"搞定！「{t['text']}」已划掉 ✅"
+
+        def _match(cands):
+            if not cands:
+                return []
+            m = [t for t in cands
+                 if name == t.get("text") or (len(name) >= 2 and name in t.get("text", ""))]
+            if not m and len(name) >= 2:
+                m = [
+                    t for t in cands
+                    if sum(1 for ch in name if ch in t.get("text", "")) >= max(2, len(name) // 2)
+                ]
+            return m
+
+        matched = _match(pending)
+        if matched:
+            if len(matched) > 1:
+                names = "、".join(t["text"] for t in matched)
+                return f"「{name}」匹配到好几项：{names}，能说得再具体点吗？"
+            t = matched[0]
+            t["done"] = True
+            self.save()
+            self.plan_tab.refresh()
+            self.update_header()
+            return f"搞定！「{t['text']}」已划掉 ✅"
+        matched_f = _match(fixed_pending)
+        if matched_f:
+            if len(matched_f) > 1:
+                names = "、".join(t.get("text", "") for t in matched_f)
+                return f"「{name}」匹配到好几项：{names}，能说得再具体点吗？"
+            t = matched_f[0]
+            t["done"] = True
+            t["owed"] = 0
+            self.save()
+            self.plan_tab.refresh()
+            self.update_header()
+            return f"搞定！长期任务「{t['text']}」提前划去完成啦 🎉"
+        return f"没找到「{name}」。可以说「列出计划」看看有哪些～"
 
     def pet_delete_task(self, name):
         name = (name or "").strip()
@@ -1249,17 +1870,25 @@ class FloatWindow(QWidget):
     def pet_list_tasks(self):
         day = storage.today_str()
         tasks = self.data["daily"].get(day, [])
-        if not tasks:
+        fixed = [t for t in self.data.get("tasks", []) if not t.get("done")]
+        if not tasks and not fixed:
             return "今天还没有计划，要不要加一条？跟我说「添加 背单词」就行～"
         pending = [t for t in tasks if not t.get("done")]
         done = [t for t in tasks if t.get("done")]
-        lines = [f"今日共 {len(tasks)} 项，已完成 {len(done)} 项："]
+        lines = [f"今日共 {len(tasks)} 项一次性任务，已完成 {len(done)} 项："]
         if pending:
             lines.append("未完成：")
             lines += [f"{i + 1}. {t['text']}" for i, t in enumerate(pending)]
         if done:
             done_names = "、".join(t["text"] for t in done[:5])
             lines.append(f"已完成：{done_names}{'…' if len(done) > 5 else ''}")
+        if fixed:
+            lines.append(f"长期任务 {len(fixed)} 项：")
+            for i, t in enumerate(fixed):
+                tail = f"（欠 {t.get('owed', 0)} 天）" if t.get("owed", 0) else ""
+                lines.append(
+                    f"  {i + 1}. {t.get('text', '')} "
+                    f"{t.get('progress', 0)}/{t.get('target_days', 1)}{tail}")
         return "\n".join(lines)
 
     # ---------- 专注计时控制（聊天指令） ----------
@@ -1353,6 +1982,7 @@ class FloatWindow(QWidget):
         if today != self._last_day:
             self._last_day = today
             self._fired_times.clear()
+            storage.rollover_fixed(self.data)   # 跨日结算长期任务欠卡（冻结自动跳过）
             self.plan_tab.refresh()
             self.timer_tab.refresh_stats()
             self.stats_tab._day = datetime.date.today()
@@ -1429,6 +2059,7 @@ class FloatWindow(QWidget):
 class _DragArea(QWidget):
     def __init__(self, win, parent=None):
         super().__init__(parent)
+        self.setAttribute(Qt.WA_StyledBackground, True)
         self._win = win
         self._drag_offset = None
 

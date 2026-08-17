@@ -1,0 +1,171 @@
+{
+  "exam_date": "2026-12-20",
+  "window_pos": [
+    456,
+    716
+  ],
+  "collapsed": false,
+  "daily": {
+    "2026-08-09": [
+      {
+        "text": "线性代数",
+        "done": true
+      },
+      {
+        "text": "考研政治",
+        "done": false
+      },
+      {
+        "text": "英语单词",
+        "done": false
+      }
+    ],
+    "2026-08-10": [
+      {
+        "text": "线性代数",
+        "done": true
+      },
+      {
+        "text": "线性代数错题",
+        "done": true
+      },
+      {
+        "text": "政治学习",
+        "done": true
+      },
+      {
+        "text": "单词",
+        "done": true
+      }
+    ],
+    "2026-08-11": [
+      {
+        "text": "学习",
+        "done": false
+      },
+      {
+        "text": "单词",
+        "done": false
+      }
+    ]
+  },
+  "reminders": [],
+  "timer": {
+    "duration_min": 60
+  },
+  "focus_sessions": [
+    {
+      "date": "2026-08-09",
+      "start": "13:36",
+      "end": "14:21",
+      "duration_min": 45,
+      "period": "下午"
+    }
+  ],
+  "focus_history": {
+    "2026-08-09": {
+      "13": 24.0,
+      "14": 20.0,
+      "15": 28.067,
+      "16": 0.034,
+      "17": 58.191,
+      "18": 45.441,
+      "20": 1.53,
+      "21": 61.2,
+      "22": 61.2,
+      "23": 61.2
+    },
+    "2026-08-10": {
+      "0": 40.392,
+      "1": 32.249,
+      "13": 27.132,
+      "14": 61.2,
+      "15": 61.2,
+      "16": 53.159,
+      "17": 53.907,
+      "18": 61.2,
+      "19": 61.2,
+      "20": 50.065,
+      "22": 18.768,
+      "23": 16.83
+    },
+    "2026-08-11": {
+      "16": 16.201,
+      "17": 61.217,
+      "18": 61.2,
+      "19": 61.183,
+      "20": 61.2,
+      "21": 45.22
+    }
+  },
+  "focus_reminder": {
+    "enabled": true,
+    "interval_min": 60
+  },
+  "unfinished_reminder": {
+    "enabled": false,
+    "interval_min": 60
+  },
+  "pet_chat": {
+    "enabled": true,
+    "base_url": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+    "model": "glm-4.6v-flash",
+    "api_key": "d7033c27b5954afead5d789d5a990d1c.eyw4hTLBLJkVphPY"
+  },
+  "pet_idle": {
+    "enabled": true,
+    "interval_min": 8
+  },
+  "caption": {
+    "enabled": false,
+    "model": "FunAudioLLM/SenseVoiceSmall",
+    "language": "auto",
+    "font_size": 12,
+    "color": "#F5F0E6"
+  },
+  "voice": {
+    "enabled": false
+  },
+  "tts": {
+    "enabled": false,
+    "url": "http://127.0.0.1:9880",
+    "server_cmd": "cd /d C:\\Users\\21495\\gsvi && C:\\Users\\21495\\gsvi_venv\\Scripts\\python.exe api_v2.py -p 9880",
+    "ref_audio_path": "C:/Users/21495/Desktop/kaoyan_planner/model/ellen/reference_audios/中文/emotions/【默认】嗯，幽灵小姐狼人先生和巨子少女。.wav",
+    "prompt_text": "嗯，幽灵小姐狼人先生和巨子少女。",
+    "prompt_lang": "zh"
+  },
+  "archive": {
+    "2026-08-09": [
+      {
+        "text": "线性代数",
+        "done": true
+      },
+      {
+        "text": "考研政治",
+        "done": false
+      },
+      {
+        "text": "英语单词",
+        "done": false
+      }
+    ],
+    "2026-08-10": [
+      {
+        "text": "线性代数",
+        "done": true
+      },
+      {
+        "text": "线性代数错题",
+        "done": true
+      },
+      {
+        "text": "政治学习",
+        "done": true
+      },
+      {
+        "text": "单词",
+        "done": true
+      }
+    ]
+  }
+}

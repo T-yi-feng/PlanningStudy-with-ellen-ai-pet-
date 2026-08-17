@@ -17,6 +17,8 @@ import time
 import urllib.error
 import urllib.request
 
+import paths
+
 from PyQt5.QtCore import QObject, QUrl, pyqtSignal
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
 
@@ -26,6 +28,45 @@ _READY_INTERVAL_S = 1.5
 # 失败提示节流
 _WARN_INTERVAL_S = 10.0
 _MAX_TEXT = 200
+
+
+def _resolve_ref_audio(path):
+    """参考音频路径可能随程序搬移而失效（配置里存的是旧绝对路径）。
+
+    依次尝试：原样 → 相对程序目录（exe/项目旁） → 在 <程序目录>/model 下按文件名搜索。
+    返回实际存在的路径；全找不到则原样返回，交给服务端报错。
+    """
+    path = (path or "").strip()
+    if not path:
+        return ""
+    if os.path.exists(path):
+        return path
+    base = paths.base_dir()
+    cand = os.path.join(base, path.lstrip("/\\"))
+    if os.path.exists(cand):
+        return cand
+    fname = os.path.basename(path)
+    if fname:
+        model_dir = os.path.join(base, "model")
+        if os.path.isdir(model_dir):
+            for root, _dirs, files in os.walk(model_dir):
+                if fname in files:
+                    return os.path.join(root, fname)
+    return path
+
+
+def _prompt_from_filename(path):
+    """GSVI 参考音频常命名为「【标签】转写文字.wav」，从文件名提取转写。
+
+    SoVITS V3 模型要求 prompt_text（参考音频的转写）不能为空；配置文件里
+    没填时，用文件名里带出来的转写兜底。
+    """
+    name = os.path.basename(path)
+    if "】" in name:
+        tail = name.split("】", 1)[1].rsplit(".", 1)[0].strip()
+        if tail:
+            return tail
+    return ""
 
 
 class SpeakingEngine(QObject):
@@ -143,16 +184,20 @@ class SpeakingEngine(QObject):
     def _synthesize(self, text):
         url = (self._get_url() or "http://127.0.0.1:9880").rstrip("/")
         ref = self._get_ref() or {}
-        ref_path = (ref.get("ref_audio_path") or "").strip()
+        ref_path = _resolve_ref_audio(ref.get("ref_audio_path") or "")
         if not ref_path:
             self._warn("⚠ 没配置参考音频：右键「语音播报设置…」填艾莲的参考音频路径")
             return
+        prompt = (ref.get("prompt_text") or "").strip()
+        if not prompt:
+            # SoVITS V3 要求 prompt_text：配置里没填时，从 GSVI 文件名「【…】转写」兜底
+            prompt = _prompt_from_filename(ref_path)
         payload = json.dumps({
             "text": text,
             "text_lang": "auto",
             "ref_audio_path": ref_path,
             "prompt_lang": (ref.get("prompt_lang") or "zh").strip() or "zh",
-            "prompt_text": (ref.get("prompt_text") or "").strip(),
+            "prompt_text": prompt,
             "text_split_method": "cut5",
             "speed": 1.0,
         }).encode("utf-8")
@@ -178,7 +223,15 @@ class SpeakingEngine(QObject):
                 reason = info.get("Exception") or info.get("message") or ""
             except Exception:
                 pass
-            hint = "检查「语音播报设置…」的参考音频路径/语言" if "prompt" in reason.lower() or "ref" in reason.lower() or "not exists" in reason.lower() else "稍后再试"
+            low = reason.lower()
+            if "prompt_text" in low:
+                hint = "右键「语音播报设置…」填「参考音频文字」（SoVITS V3 必填，可看文件名【…】后的转写）"
+            elif "ref" in low or "not exists" in low or "file" in low:
+                hint = "检查「语音播报设置…」的参考音频路径是否正确"
+            elif "text" in low:
+                hint = "说点有效内容再试"
+            else:
+                hint = "稍后再试"
             self._warn("⚠ 语音服务拒绝了请求（%s）%s%s" % (exc.code, ("：" + reason) if reason else "", "——" + hint))
         except Exception:
             # 服务没起/出错 → 安静跳过，只节流提示
