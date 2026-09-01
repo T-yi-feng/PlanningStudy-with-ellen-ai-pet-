@@ -1,0 +1,95 @@
+<UserControl x:Class="KaoyanPlanner.WPF.Views.Tabs.TimerTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="860">
+    <Grid Margin="24,20,24,16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="240" />
+        </Grid.ColumnDefinitions>
+
+        <!-- 左：计时内容 -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- 44px 大字 -->
+            <TextBlock x:Name="timeLbl" Text="00:00:00" Style="{StaticResource BigTimerText}"
+                       HorizontalAlignment="Center" />
+
+            <!-- 状态提示 -->
+            <TextBlock x:Name="statusLbl" Grid.Row="1" Style="{StaticResource MutedText}"
+                       HorizontalAlignment="Center" Margin="0,2,0,0"
+                       Text="未开始 · 点击开始进入专注" />
+
+            <!-- 开始/暂停 + 重置 -->
+            <Grid Grid.Row="2" Width="400" HorizontalAlignment="Center" Margin="0,20,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button x:Name="startBtn" Style="{StaticResource PrimaryButtonStyle}" Content="开始"
+                        Height="38" FontSize="15" />
+                <Button x:Name="resetBtn" Grid.Column="1" Style="{StaticResource SecondaryButtonStyle}"
+                        Content="重置" Height="38" FontSize="15" Margin="10,0,0,0" />
+            </Grid>
+
+            <!-- 喝水提醒 -->
+            <Grid Grid.Row="3" HorizontalAlignment="Center" Margin="0,20,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox x:Name="remindCheck" Content="定时提醒喝水休息" VerticalAlignment="Center" />
+                    <TextBlock Text="每" Style="{StaticResource BodyText}" Margin="14,0,0,0" VerticalAlignment="Center" />
+                    <TextBox x:Name="remindInterval" Width="52" Text="60" TextAlignment="Center"
+                             Margin="6,0,6,0"
+                             PreviewTextInput="Interval_PreviewTextInput"
+                             LostKeyboardFocus="Interval_LostFocus"
+                             KeyDown="Interval_KeyDown" />
+                    <TextBlock Text="分钟提醒一次" Style="{StaticResource BodyText}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+
+            <!-- 今日专注统计卡 -->
+            <Border Grid.Row="4" Style="{StaticResource CardStyle}" Margin="0,24,0,0" Padding="16,12">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="今日专注统计" Style="{StaticResource TitleText}" FontSize="15"
+                                   VerticalAlignment="Center" />
+                        <Button x:Name="openStatsBtn" Grid.Column="1" Content="专注统计 ▸"
+                                Style="{StaticResource AccentButtonStyle}" Height="26" Padding="12,2" />
+                    </Grid>
+                    <TextBlock x:Name="todayStatsLbl" Text="0 分钟 · 0 个活跃时段"
+                               Style="{StaticResource BodyText}" Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- 右：本次专注计划选择面板 -->
+        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="16,0,0,0" Padding="12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock Text="本次专注计划" Style="{StaticResource TitleText}" FontSize="14" />
+                    <TextBlock x:Name="currentPlanLbl" Style="{StaticResource MutedText}" Margin="0,2,0,0" />
+                </StackPanel>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+                    <StackPanel x:Name="planList" />
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

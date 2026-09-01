@@ -1,0 +1,60 @@
+<Window x:Class="KaoyanPlanner.WPF.Views.Pet.ChatWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="320" SizeToContent="Height" MaxHeight="520"
+        WindowStyle="None" Topmost="True" ShowInTaskbar="False"
+        ResizeMode="NoResize" Background="{StaticResource SurfaceBrush}">
+    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- 头部：标题 + 忙中 + 设置 + 关闭（可拖动） -->
+            <Grid Grid.Row="0" Margin="12,10,8,4" Background="Transparent"
+                  MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                  MouseMove="Header_MouseMove"
+                  MouseLeftButtonUp="Header_MouseLeftButtonUp">
+                <TextBlock Text="💬 和艾莲聊聊" FontSize="15" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           VerticalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <TextBlock x:Name="busyLbl" Text="艾莲在想…" Style="{StaticResource MutedText}"
+                               Visibility="Collapsed" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <Button x:Name="settingsBtn" Content="⚙" Style="{StaticResource GhostIconButtonStyle}"
+                            Width="26" Height="26" Click="Settings_Click" ToolTip="AI 对话设置" />
+                    <Button x:Name="closeBtn" Content="✕" Style="{StaticResource DangerIconButtonStyle}"
+                            Width="26" Height="26" Margin="2,0,0,0" Click="Close_Click" />
+                </StackPanel>
+            </Grid>
+
+            <!-- 消息区 -->
+            <ScrollViewer x:Name="scroll" Grid.Row="1" MaxHeight="340"
+                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel x:Name="msgHost" Margin="10,4,10,4" />
+            </ScrollViewer>
+
+            <!-- 输入区 -->
+            <Grid Grid.Row="2" Margin="8,6,8,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid>
+                    <TextBlock Text="输入消息或粘贴图片，回车发送…" Foreground="{StaticResource TextMutedBrush}"
+                               VerticalAlignment="Center" Margin="8,0" IsHitTestVisible="False"
+                               x:Name="chatPlaceholder" />
+                    <TextBox x:Name="chatInput" Height="30" BorderThickness="1"
+                             VerticalContentAlignment="Center" Padding="6,0"
+                             Background="{StaticResource InputBrush}"
+                             TextChanged="ChatInput_TextChanged"
+                             PreviewKeyDown="ChatInput_PreviewKeyDown" />
+                </Grid>
+                <Button x:Name="sendBtn" Grid.Column="1" Content="发送" Height="30" Margin="6,0,0,0"
+                        Style="{StaticResource PrimaryButtonStyle}" Click="Send_Click" />
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

@@ -1,0 +1,3 @@
+C:\Users\21495\Desktop\Coding\dist-wpf-test\KaoyanPlanner.WPF.pdb
+C:\Users\21495\Desktop\Coding\dist-wpf-test\data.json
+C:\Users\21495\Desktop\Coding\dist-wpf-test\KaoyanPlanner.WPF.exe

@@ -1,0 +1,12 @@
+<UserControl x:Class="KaoyanPlanner.WPF.Controls.TimeBox"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="90">
+    <!-- HH:mm 掩码：只收数字、自动补冒号、退格吃冒号、Enter 提交（逻辑在 code-behind） -->
+    <TextBox x:Name="tb" Width="80" MaxLength="5"
+             ToolTip="HH:mm，如 19:00"
+             PreviewTextInput="Tb_PreviewTextInput"
+             PreviewKeyDown="Tb_PreviewKeyDown" />
+</UserControl>

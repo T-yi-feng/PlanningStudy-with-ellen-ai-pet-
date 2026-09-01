@@ -1,0 +1,17 @@
+<Window x:Class="KaoyanPlanner.WPF.Views.Pet.PetBubbleWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False" ShowActivated="False"
+        ResizeMode="NoResize" SizeToContent="WidthAndHeight">
+    <!-- 骨白圆角卡 + 细描边：自绘圆角（镜像 pet.py PetBubble.paintEvent），随缩放一起动 -->
+    <Border x:Name="card" Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+            CornerRadius="12" Padding="14,10,14,10" MaxWidth="320">
+        <StackPanel>
+            <Image x:Name="imgPreview" Width="170" Stretch="Uniform" Visibility="Collapsed" Margin="0,0,0,8" />
+            <TextBlock x:Name="bubbleText" TextWrapping="Wrap" MaxWidth="300"
+                       Style="{StaticResource BodyText}" FontSize="15" LineHeight="24" />
+        </StackPanel>
+    </Border>
+</Window>

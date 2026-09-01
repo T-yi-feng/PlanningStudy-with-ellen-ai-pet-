@@ -1,0 +1,71 @@
+<Window x:Class="KaoyanPlanner.WPF.Views.Pet.PetWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="艾莲" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False" ShowActivated="False"
+        ResizeMode="NoResize" SizeToContent="WidthAndHeight" Cursor="Hand"
+        Loaded="Window_Loaded">
+    <StackPanel Margin="4">
+        <!-- 头顶状态条：任务进度 + 专注状态，每秒刷新 -->
+        <Border x:Name="statusBar" HorizontalAlignment="Center" Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                CornerRadius="10" Padding="10,3,10,3" Margin="0,0,0,4">
+            <TextBlock x:Name="statusText" FontSize="12" Style="{StaticResource MetadataText}"
+                       Foreground="{StaticResource TextSecondaryBrush}" Text="📋 0/0　·　🎯 未专注" />
+        </Border>
+
+        <!-- 宠物动画（.ani 帧序列），拖拽 + 右键菜单 -->
+        <Image x:Name="petImage" Width="190" Height="190" Stretch="Fill"
+               MouseLeftButtonDown="Pet_MouseLeftButtonDown"
+               MouseMove="Pet_MouseMove"
+               MouseLeftButtonUp="Pet_MouseLeftButtonUp">
+            <Image.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="回到主窗口" Click="MenuRestore_Click" />
+                    <MenuItem Header="设置…" Click="MenuSettings_Click" />
+                    <MenuItem Header="打开聊天记录 💬" Click="MenuChat_Click" />
+                    <Separator />
+                    <MenuItem x:Name="menuCaption" Header="启用字幕" IsCheckable="True" Click="MenuCaption_Click" />
+                    <MenuItem Header="字幕设置…" Click="MenuCaptionSettings_Click" />
+                    <Separator />
+                    <MenuItem x:Name="menuVoice" Header="语音输入 🎤（敬请期待）" Click="MenuVoice_Click" />
+                    <Separator />
+                    <MenuItem x:Name="menuTts" Header="语音播报 🔊" IsCheckable="True" Click="MenuTts_Click" />
+                    <MenuItem Header="语音播报设置…" Click="MenuTtsSettings_Click" />
+                    <Separator />
+                    <MenuItem x:Name="menuAutostart" Header="开机自启" IsCheckable="True" Click="MenuAutostart_Click" />
+                    <Separator />
+                    <MenuItem Header="退出程序" Click="MenuQuit_Click" />
+                </ContextMenu>
+            </Image.ContextMenu>
+        </Image>
+
+        <!-- 常驻圆角输入框：回车发送 / 可粘贴图片 -->
+        <Border x:Name="chatBar" Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                CornerRadius="10" Padding="6,4,6,4" Margin="0,4,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid>
+                    <TextBlock x:Name="inputPlaceholder" Text="和艾莲说点什么…（可粘贴图片）"
+                               Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"
+                               Margin="8,0" IsHitTestVisible="False" FontSize="12" />
+                    <TextBox x:Name="petInput" Height="28" BorderThickness="0" Background="Transparent"
+                             VerticalContentAlignment="Center" Padding="6,0" FontSize="13"
+                             TextChanged="PetInput_TextChanged"
+                             PreviewKeyDown="PetInput_PreviewKeyDown"
+                             GotKeyboardFocus="PetInput_GotFocus"
+                             LostKeyboardFocus="PetInput_LostFocus" />
+                </Grid>
+                <Button x:Name="sendBtn" Grid.Column="1" Content="➤" Width="28" Height="28" Margin="4,0,0,0"
+                        Style="{StaticResource PrimaryButtonStyle}" Click="Send_Click" ToolTip="发送" />
+                <Button x:Name="micBtn" Grid.Column="2" Content="🎤" Width="28" Height="28" Margin="4,0,0,0"
+                        Style="{StaticResource SecondaryButtonStyle}" Visibility="Collapsed" ToolTip="按住说话（后续版本）" />
+            </Grid>
+        </Border>
+    </StackPanel>
+</Window>

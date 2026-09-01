@@ -1,0 +1,71 @@
+<UserControl x:Class="KaoyanPlanner.WPF.Views.Tabs.ReminderTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:KaoyanPlanner.WPF.Controls"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="860">
+
+    <UserControl.Resources>
+        <!-- 未完成提醒的间隔输入：数字专用 + 聚焦提示 -->
+        <Style x:Key="IntervalInputStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Width" Value="52" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="ToolTip" Value="检查间隔（分钟）" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 添加行：时间 + 内容 + 添加 -->
+        <Grid Grid.Row="0" Margin="20,16,20,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <controls:TimeBox x:Name="timeBox" VerticalAlignment="Center" />
+            <TextBox x:Name="labelInput" Grid.Column="1" Margin="8,0,8,0" MaxLength="40"
+                     KeyDown="LabelInput_KeyDown" ToolTip="提醒内容，回车添加" />
+            <Button Grid.Column="2" Content="添加" Style="{StaticResource PrimaryButtonStyle}"
+                    VerticalAlignment="Center" Click="Add_Click" />
+        </Grid>
+
+        <!-- 下次提醒摘要 -->
+        <TextBlock x:Name="nextLbl" Grid.Row="1" Style="{StaticResource MutedText}"
+                   Margin="20,10,20,0" />
+
+        <!-- 提醒列表 / 空态 -->
+        <Grid Grid.Row="2" Margin="20,10,20,8">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+                <StackPanel x:Name="listPanel" />
+            </ScrollViewer>
+            <TextBlock x:Name="emptyLbl" Style="{StaticResource MutedText}"
+                       TextAlignment="Center" VerticalAlignment="Center" HorizontalAlignment="Center"
+                       TextWrapping="Wrap">
+                <Run Text="还没有提醒" /><LineBreak /><Run Text="可以先设一个晚间复盘或背词提醒" />
+            </TextBlock>
+        </Grid>
+
+        <!-- 未完成任务提醒：每 N 分钟检查当天待办 -->
+        <Border Grid.Row="3" Style="{StaticResource SectionHeaderStyle}" Margin="20,0,20,16"
+                Padding="12,6">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <CheckBox x:Name="unfinishedCheck" Content="未完成任务提醒"
+                          ToolTip="当天有待办未完成时，每隔设定时间在右下角弹窗" />
+                <TextBlock Text="每" Style="{StaticResource MutedText}" Margin="12,0,4,0" VerticalAlignment="Center" />
+                <TextBox x:Name="intervalInput" Style="{StaticResource IntervalInputStyle}"
+                         VerticalContentAlignment="Center"
+                         PreviewTextInput="Interval_PreviewTextInput"
+                         LostFocus="Interval_LostFocus" KeyDown="Interval_KeyDown" />
+                <TextBlock Text="分钟弹窗提醒待办" Style="{StaticResource MutedText}" Margin="4,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

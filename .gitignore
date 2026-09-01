@@ -18,3 +18,6 @@ model/
 # PyInstaller 构建产物（几十 MB 的 exe 与中间文件）—— 不入库
 build/
 dist/
+
+# WPF 重写版发布产物（自包含单文件 exe）—— 不入库
+dist-wpf/

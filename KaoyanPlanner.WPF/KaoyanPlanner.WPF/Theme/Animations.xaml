@@ -1,0 +1,55 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ================================================================
+         动效：160ms 淡入+4px 上移 / 180ms 展开 / 80ms 按压
+         面板切换用代码侧 BeginAnimation（SnapshotAndReplace → 天然可打断）
+         ================================================================ -->
+
+    <!-- 面板淡入 -->
+    <Storyboard x:Key="TabFadeIn">
+        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                         From="0" To="1" Duration="0:0:0.16">
+            <DoubleAnimation.EasingFunction>
+                <CubicEase EasingMode="EaseOut" />
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+    </Storyboard>
+
+    <!-- 面板上移 4px -->
+    <Storyboard x:Key="TabSlideUp">
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                         From="4" To="0" Duration="0:0:0.16">
+            <DoubleAnimation.EasingFunction>
+                <CubicEase EasingMode="EaseOut" />
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+    </Storyboard>
+
+    <!-- 弹窗展开（提醒） -->
+    <Storyboard x:Key="PanelOpen">
+        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                         From="0" To="1" Duration="0:0:0.18" />
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                         From="8" To="0" Duration="0:0:0.18">
+            <DoubleAnimation.EasingFunction>
+                <CubicEase EasingMode="EaseOut" />
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+    </Storyboard>
+
+    <!-- 危险确认按压（80ms，无弹跳） -->
+    <Storyboard x:Key="PressDown">
+        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX"
+                         To="0.98" Duration="0:0:0.08" />
+        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                         To="0.98" Duration="0:0:0.08" />
+    </Storyboard>
+    <Storyboard x:Key="PressUp">
+        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX"
+                         To="1" Duration="0:0:0.08" />
+        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                         To="1" Duration="0:0:0.08" />
+    </Storyboard>
+
+</ResourceDictionary>

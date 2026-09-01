@@ -1,0 +1,48 @@
+<UserControl x:Class="KaoyanPlanner.WPF.Views.Tabs.StatsTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:KaoyanPlanner.WPF.Controls"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="860">
+    <Grid Margin="24,16,24,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- 头部：日/周切换 + 日导航（仅日视图） -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal">
+                <RadioButton x:Name="dayRb" Content="日" GroupName="statsPeriod" Tag="day"
+                             IsChecked="True" Click="Period_Click"
+                             Style="{StaticResource SegmentedButtonStyle}" />
+                <RadioButton x:Name="weekRb" Content="周" GroupName="statsPeriod" Tag="week"
+                             Click="Period_Click" Style="{StaticResource SegmentedButtonStyle}"
+                             Margin="8,0,0,0" />
+            </StackPanel>
+            <Grid x:Name="dayNav" Grid.Column="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Button x:Name="prevBtn" Content="◀" Style="{StaticResource SecondaryButtonStyle}"
+                        Width="34" Height="28" Padding="0" Click="Prev_Click" />
+                <Border Grid.Column="1" HorizontalAlignment="Center" Style="{StaticResource PillAccentStyle}"
+                        Padding="14,4" VerticalAlignment="Center">
+                    <TextBlock x:Name="dayLbl" Style="{StaticResource BodyText}" FontWeight="SemiBold" />
+                </Border>
+                <Button x:Name="nextBtn" Grid.Column="2" Content="▶" Style="{StaticResource SecondaryButtonStyle}"
+                        Width="34" Height="28" Padding="0" Click="Next_Click" />
+            </Grid>
+        </Grid>
+
+        <!-- 整个统计区：无限滚动 + 焦点缩放画廊（日 4 卡 / 周 2 卡） -->
+        <controls:FocusGallery x:Name="gallery" Grid.Row="1" Margin="0,14,0,0" />
+    </Grid>
+</UserControl>

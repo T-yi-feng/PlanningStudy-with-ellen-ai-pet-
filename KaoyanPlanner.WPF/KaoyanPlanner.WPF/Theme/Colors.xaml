@@ -1,0 +1,112 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ================================================================
+         骨白（暖象牙）浅色主题 + 强调色 #339CFF
+         值取自 theme.py _WORKSPACE_LIGHT（固定浅色，不随系统深浅）
+         ================================================================ -->
+
+    <!-- 中性表面 -->
+    <Color x:Key="CanvasColor">#EAE6D8</Color>
+    <Color x:Key="RailColor">#E5E0D2</Color>
+    <Color x:Key="SurfaceColor">#F3EFE3</Color>
+    <Color x:Key="ElevatedColor">#F8F5EB</Color>
+    <Color x:Key="BorderColor">#D7D1C2</Color>
+    <Color x:Key="BorderStrongColor">#CCC5B5</Color>
+    <Color x:Key="InputColor">#F6F2E7</Color>
+    <Color x:Key="PressedColor">#EBE5D6</Color>
+    <Color x:Key="HoverFillColor">#EDE7D8</Color>
+    <Color x:Key="TrackColor">#DED9CB</Color>
+    <Color x:Key="ScrollHandleColor">#CFC9B9</Color>
+    <Color x:Key="ScrollHandleHoverColor">#BDB5A2</Color>
+    <Color x:Key="CheckBorderColor">#BDB6A6</Color>
+
+    <!-- 文字 -->
+    <Color x:Key="TextPrimaryColor">#2B2A26</Color>
+    <Color x:Key="TextSecondaryColor">#787774</Color>
+    <Color x:Key="TextMutedColor">#8A8578</Color>
+    <Color x:Key="TextDoneColor">#8A8F98</Color>
+    <Color x:Key="EmptyStateColor">#9B9A97</Color>
+
+    <!-- 强调蓝 -->
+    <Color x:Key="AccentColor">#339CFF</Color>
+    <Color x:Key="AccentHoverColor">#2B8AE8</Color>
+    <Color x:Key="AccentStrongColor">#1273C9</Color>
+    <Color x:Key="AccentSoftColor">#66B7FF</Color>
+
+    <!-- 状态 -->
+    <Color x:Key="SuccessColor">#39B77A</Color>
+    <Color x:Key="WarnColor">#E6A23C</Color>
+    <Color x:Key="DangerColor">#E05252</Color>
+    <Color x:Key="DangerHoverColor">#D44C47</Color>
+    <Color x:Key="DangerSoftFillColor">#FDECEC</Color>
+    <Color x:Key="WarnSoftFillColor">#FDF3E1</Color>
+    <Color x:Key="WarnBorderSoftColor">#59E6A23C</Color>
+
+    <!-- 合成 alpha（QSS 内联 rgba → 8 位 ARGB） -->
+    <Color x:Key="AccentSoftFillColor">#24339CFF</Color>      <!-- rgba(51,156,255,0.14) -->
+    <Color x:Key="AccentSoftFillHoverColor">#33339CFF</Color> <!-- 0.20 -->
+    <Color x:Key="AccentBorderSoftColor">#73339CFF</Color>    <!-- 0.45 -->
+    <Color x:Key="AccentBorderStrongColor">#8C339CFF</Color>  <!-- 0.55 -->
+    <Color x:Key="RailSelectedFillColor">#25339CFF</Color>    <!-- rail 选中低对比填充 0.14 -->
+
+    <!-- SolidColorBrush 版本（XAML 用） -->
+    <SolidColorBrush x:Key="CanvasBrush" Color="{StaticResource CanvasColor}" />
+    <SolidColorBrush x:Key="RailBrush" Color="{StaticResource RailColor}" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
+    <SolidColorBrush x:Key="ElevatedBrush" Color="{StaticResource ElevatedColor}" />
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource BorderStrongColor}" />
+    <SolidColorBrush x:Key="InputBrush" Color="{StaticResource InputColor}" />
+    <SolidColorBrush x:Key="PressedBrush" Color="{StaticResource PressedColor}" />
+    <SolidColorBrush x:Key="HoverFillBrush" Color="{StaticResource HoverFillColor}" />
+    <SolidColorBrush x:Key="TrackBrush" Color="{StaticResource TrackColor}" />
+    <SolidColorBrush x:Key="ScrollHandleBrush" Color="{StaticResource ScrollHandleColor}" />
+    <SolidColorBrush x:Key="ScrollHandleHoverBrush" Color="{StaticResource ScrollHandleHoverColor}" />
+    <SolidColorBrush x:Key="CheckBorderBrush" Color="{StaticResource CheckBorderColor}" />
+
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMutedColor}" />
+    <SolidColorBrush x:Key="TextDoneBrush" Color="{StaticResource TextDoneColor}" />
+    <SolidColorBrush x:Key="EmptyStateBrush" Color="{StaticResource EmptyStateColor}" />
+
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}" />
+    <SolidColorBrush x:Key="AccentStrongBrush" Color="{StaticResource AccentStrongColor}" />
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="{StaticResource AccentSoftColor}" />
+
+    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
+    <SolidColorBrush x:Key="WarnBrush" Color="{StaticResource WarnColor}" />
+    <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}" />
+    <SolidColorBrush x:Key="DangerHoverBrush" Color="{StaticResource DangerHoverColor}" />
+    <SolidColorBrush x:Key="DangerSoftFillBrush" Color="{StaticResource DangerSoftFillColor}" />
+    <SolidColorBrush x:Key="WarnSoftFillBrush" Color="{StaticResource WarnSoftFillColor}" />
+    <SolidColorBrush x:Key="WarnBorderSoftBrush" Color="{StaticResource WarnBorderSoftColor}" />
+
+    <SolidColorBrush x:Key="AccentSoftFillBrush" Color="{StaticResource AccentSoftFillColor}" />
+    <SolidColorBrush x:Key="AccentSoftFillHoverBrush" Color="{StaticResource AccentSoftFillHoverColor}" />
+    <SolidColorBrush x:Key="AccentBorderSoftBrush" Color="{StaticResource AccentBorderSoftColor}" />
+    <SolidColorBrush x:Key="AccentBorderStrongBrush" Color="{StaticResource AccentBorderStrongColor}" />
+    <SolidColorBrush x:Key="RailSelectedFillBrush" Color="{StaticResource RailSelectedFillColor}" />
+
+    <!-- 图表色板（按计划取色；深色变体略亮保证暗底可读） -->
+    <Color x:Key="Chart1Color">#339CFF</Color>
+    <Color x:Key="Chart2Color">#39B77A</Color>
+    <Color x:Key="Chart3Color">#E6A23C</Color>
+    <Color x:Key="Chart4Color">#E05252</Color>
+    <Color x:Key="Chart5Color">#9A6BDB</Color>
+    <Color x:Key="Chart6Color">#E872A8</Color>
+    <SolidColorBrush x:Key="Chart1Brush" Color="{StaticResource Chart1Color}" />
+    <SolidColorBrush x:Key="Chart2Brush" Color="{StaticResource Chart2Color}" />
+    <SolidColorBrush x:Key="Chart3Brush" Color="{StaticResource Chart3Color}" />
+    <SolidColorBrush x:Key="Chart4Brush" Color="{StaticResource Chart4Color}" />
+    <SolidColorBrush x:Key="Chart5Brush" Color="{StaticResource Chart5Color}" />
+    <SolidColorBrush x:Key="Chart6Brush" Color="{StaticResource Chart6Color}" />
+
+    <!-- 焦点环：2px accent 边 + 30% 扩散辉光 -->
+    <SolidColorBrush x:Key="FocusRingBrush" Color="{StaticResource AccentColor}" />
+    <DropShadowEffect x:Key="FocusGlowEffect" Color="{StaticResource AccentColor}"
+                      BlurRadius="5" ShadowDepth="0" Opacity="0.3" />
+
+</ResourceDictionary>

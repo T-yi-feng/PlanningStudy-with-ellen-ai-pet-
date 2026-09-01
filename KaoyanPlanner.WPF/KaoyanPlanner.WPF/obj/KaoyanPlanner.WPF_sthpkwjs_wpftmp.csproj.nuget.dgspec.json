@@ -1,0 +1,69 @@
+{
+  "format": 1,
+  "restore": {
+    "c:\\Users\\21495\\Desktop\\Coding\\kaoyan_planner\\KaoyanPlanner.WPF\\KaoyanPlanner.WPF\\KaoyanPlanner.WPF.csproj": {}
+  },
+  "projects": {
+    "c:\\Users\\21495\\Desktop\\Coding\\kaoyan_planner\\KaoyanPlanner.WPF\\KaoyanPlanner.WPF\\KaoyanPlanner.WPF.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "c:\\Users\\21495\\Desktop\\Coding\\kaoyan_planner\\KaoyanPlanner.WPF\\KaoyanPlanner.WPF\\KaoyanPlanner.WPF.csproj",
+        "projectName": "KaoyanPlanner.WPF",
+        "projectPath": "c:\\Users\\21495\\Desktop\\Coding\\kaoyan_planner\\KaoyanPlanner.WPF\\KaoyanPlanner.WPF\\KaoyanPlanner.WPF.csproj",
+        "packagesPath": "C:\\Users\\21495\\.nuget\\packages\\",
+        "outputPath": "c:\\Users\\21495\\Desktop\\Coding\\kaoyan_planner\\KaoyanPlanner.WPF\\KaoyanPlanner.WPF\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\21495\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0-windows"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0-windows7.0": {
+            "targetAlias": "net8.0-windows",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0-windows7.0": {
+          "targetAlias": "net8.0-windows",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            },
+            "Microsoft.WindowsDesktop.App": {
+              "privateAssets": "none"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.424/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

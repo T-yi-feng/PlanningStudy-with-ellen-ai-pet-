@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>PetPlanner</AssemblyName>
+    <RootNamespace>KaoyanPlanner.WPF</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\..\icon.ico</ApplicationIcon>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+  </PropertyGroup>
+
+  <!-- 开发运行：把仓库根的 data.json 拷到输出目录一份（改的只是副本，真文件不动） -->
+  <!-- ExcludeFromSingleFile：单文件发布时仍以实体文件放在 exe 旁，代码用相对路径读 -->
+  <ItemGroup>
+    <None Include="..\..\data.json" Link="data.json" CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+  </ItemGroup>
+
+  <!-- 桌宠动画资源：desk_pet 顶层 .ani + 每个形象子文件夹（皮肤）随构建分发。
+       递归 glob 保留子目录结构（RecursiveDir）；preview.png 作为设置里的预览图同样分发。
+       发布后与 exe 同级，代码按磁盘路径读 → ExcludeFromSingleFile 保持实体文件。 -->
+  <ItemGroup>
+    <None Include="..\..\desk_pet\**\*.ani" Link="desk_pet\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+    <None Include="..\..\desk_pet\**\*.png" Link="desk_pet\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+  </ItemGroup>
+
+  <!-- 应用图标资源：仓库 assets/icon.png 内嵌进程序集（pack://application 可访问，单文件发布不丢） -->
+  <ItemGroup>
+    <Resource Include="..\..\assets\icon.png" Link="assets\icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+
+</Project>

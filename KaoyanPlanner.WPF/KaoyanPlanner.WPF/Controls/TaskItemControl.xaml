@@ -1,0 +1,76 @@
+<UserControl x:Class="KaoyanPlanner.WPF.Controls.TaskItemControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignHeight="64" d:DesignWidth="800">
+    <Border x:Name="rootBd" CornerRadius="8" Padding="8,6" Margin="0,0,0,4">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="Background" Value="Transparent" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{StaticResource HoverFillBrush}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+        <Border.ContextMenu>
+            <ContextMenu>
+                <MenuItem x:Name="ctxEdit" Header="编辑任务" Click="CtxEdit_Click" />
+                <MenuItem x:Name="ctxDone" Header="标记为完成" Click="CtxDone_Click" />
+                <Separator />
+                <MenuItem x:Name="ctxDel" Header="删除此任务" Click="CtxDel_Click" />
+            </ContextMenu>
+        </Border.ContextMenu>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- 主行：勾选 / 内容 / 打卡 / 编辑 / 删除 -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <CheckBox x:Name="check" VerticalAlignment="Center" />
+                <ContentControl x:Name="textSlot" Grid.Column="1" Margin="8,0,8,0" VerticalAlignment="Center">
+                    <TextBlock x:Name="textLbl" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </ContentControl>
+                <Button x:Name="punchBtn" Grid.Column="2" Style="{StaticResource AccentButtonStyle}"
+                        Content="打卡" Margin="0,0,6,0" VerticalAlignment="Center" />
+                <Button x:Name="editBtn" Grid.Column="3" Style="{StaticResource GhostIconButtonStyle}"
+                        Content="✎" VerticalAlignment="Center" ToolTip="编辑" />
+                <Button x:Name="delBtn" Grid.Column="4" Style="{StaticResource DangerIconButtonStyle}"
+                        Content="✕" VerticalAlignment="Center" ToolTip="删除" />
+            </Grid>
+
+            <!-- 行1：今日标签 + 迷你进度 + 分式 -->
+            <Grid Grid.Row="1" Margin="22,0,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border x:Name="todayTagPill" Style="{StaticResource PillStyle}" Margin="0,0,8,0"
+                        VerticalAlignment="Center" Padding="7,1">
+                    <TextBlock x:Name="todayTagText" FontSize="11" LineHeight="16" />
+                </Border>
+                <ProgressBar x:Name="miniBar" Grid.Column="1" Style="{StaticResource MiniProgressBarStyle}"
+                             VerticalAlignment="Center" Margin="0,0,8,0" />
+                <TextBlock x:Name="fracText" Grid.Column="2" Style="{StaticResource MetadataText}" VerticalAlignment="Center" />
+            </Grid>
+
+            <!-- 行2：固定任务简介 -->
+            <TextBlock x:Name="descText" Grid.Row="2" Style="{StaticResource MutedText}"
+                       Margin="22,0,0,0" TextWrapping="Wrap" />
+        </Grid>
+    </Border>
+</UserControl>

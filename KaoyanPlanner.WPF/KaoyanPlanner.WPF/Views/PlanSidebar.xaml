@@ -1,0 +1,34 @@
+<UserControl x:Class="KaoyanPlanner.WPF.Views.PlanSidebar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="272" d:DesignHeight="700">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 头部：我的计划 -->
+        <StackPanel Grid.Row="0" Margin="16,14,12,8">
+            <Grid>
+                <TextBlock x:Name="sideTitle" Text="我的计划" Style="{StaticResource TitleText}" />
+                <TextBlock x:Name="planCount" Style="{StaticResource MutedText}"
+                           HorizontalAlignment="Right" VerticalAlignment="Center" />
+            </Grid>
+        </StackPanel>
+
+        <!-- 计划列表（代码里重建行） -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="8,0,4,8">
+            <StackPanel x:Name="planList" />
+        </ScrollViewer>
+
+        <!-- 底部：新建计划 -->
+        <Button x:Name="newPlanBtn" Grid.Row="2" Style="{StaticResource GhostIconButtonStyle}"
+                Content="＋ 新建计划" HorizontalAlignment="Left" Margin="14,0,12,8"
+                Click="NewPlan_Click" />
+    </Grid>
+</UserControl>
