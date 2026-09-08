@@ -52,6 +52,8 @@ KaoyanPlanner.WPF/
 ├── KaoyanPlanner.WPF.sln
 ├── KaoyanPlanner.WPF/                        ← 主项目（PetPlanner）
 │   ├── App.xaml(.cs)                         组合根：单实例→加载数据→心跳→托盘→主窗+桌宠
+│   ├── AppInfo.cs                            版本身份唯一来源：个人版/测试版（TEST_BUILD）→
+│   │                                        单实例管道、自启值、关于页、托盘名（版本隔离，见 §10.9）
 │   ├── GlobalUsings.cs                       关键！WinForms 冲突名的 WPF 版全局别名（见 §8）
 │   ├── KaoyanPlanner.WPF.csproj              发布配置：desk_pet 递归分发、ExcludeFromSingleFile
 │   ├── Services/                             纯 C# 服务层（全部可单测）
@@ -296,11 +298,14 @@ dotnet publish KaoyanPlanner.WPF/KaoyanPlanner.WPF.csproj -c Release \
 5. TTS/字幕服务事件在后台线程触发 → UI 必须 `Dispatcher.InvokeAsync` 封回，否则跨线程崩进程。
 6. `Window.RenderTransform` 只能 Identity，窗口级动画必须打在内容根元素上（否则 InvalidOperationException 崩进程）。
 7. 自绘窗（黑板/聊天窗）拖拽/缩放要用 `PointToScreen` 屏幕坐标，别用 GetPosition(this)（坐标系随移动漂移→抖动）。
-8. AI/ASR 模型会「下线」：回退链必须无条件多模型（任意 HTTP 错误都 continue），别写死单点。
+8. AI/ASR 模型会「下线」：回退链必须无条件多模型（**任意 HTTP 错误 AND 网络/超时异常都 continue**），别写死单点。
+   坑（2026-09-08 修）：PetChatService 此前对网络/超时直接 throw，单点抖动就让整条链掉进本地话术；现在网络错误与 HTTP 错误一样换下一个模型，退避 400~600ms，主模型排兜底前。
 9. 惰性键（plans/active_plan/pet_skin/archive/focus_plan）不进 CreateDefaults。
 10. `_todayPunch` 只存内存绝不落盘；`DailyTasks()` 返回副本，删任务要改真实 `daily[day]` 数组。
 11. 数据文件 CRLF：手动编辑（尤其 Python）后必须还原 `\r\n`，否则字节往返测试挂。
+12. **版本隔离（2026-09-08 起）**：同一源码两版身份——个人版（默认，艾莲）⇄ 安装包测试版（`-p:PublicNeutral=true -p:TestBuild=true`，小蓝）。身份全部走 `AppInfo.cs`：单实例管道、自启注册表值、关于页、托盘名按版本区分；安装器 `KillApp` 只杀**安装目录内**的 PetPlanner 进程（绝不误杀个人版）。两版可同时运行、数据各自独立。改身份相关代码先看 AppInfo，别硬编码 `PetPlanner_SingleInstance`/`PetPlanner` 值名。
 
 ---
 
-*最后更新：2026-09-01（专注计时按计划拆分 + 彩色统计：`focus_plan` 惰性键；**专注目标 = 长期计划（固定任务）+ 不分类**；TimerTab 计划面板 / StatsTab 日周切换）。改大模块前建议同步更新本导读与 memory。*
+*最后更新：2026-09-08（网络回退链修复：网络/超时也换模型不 throw、SocketsHttpHandler 连接池、超时 25→45s；
+版本隔离：AppInfo.cs + TEST_BUILD 开关 + 安装器按目录杀进程；应用版本 2.0.1。改大模块前建议同步更新本导读与 memory。*
