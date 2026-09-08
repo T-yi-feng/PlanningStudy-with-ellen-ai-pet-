@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>PetPlanner.Setup</AssemblyName>
+    <RootNamespace>PetPlanner.Setup</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>..\..\icon.ico</ApplicationIcon>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <!-- 向导用 dynamic 晚绑定 WScript.Shell + GetManifestResourceStream，禁止 trim -->
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+
+  <!-- payload：由 packaging/build_release.sh 先发布并清理 stage，再编译本工程。
+       逐文件白名单 include（缺 stage 文件立即编译报错 → 保证脚本顺序）。
+       WPF 单文件发布会把 5 个原生库（D3DCompiler/PenImc/PresentationNative/vcruntime/wpfgfx _cor3.dll）
+       作为实体文件留在 exe 旁 → 必须一并内嵌分发。
+       不用 ** glob，避免把清理漏网的个人文件一并打进公共包。 -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\_stage\app\PetPlanner.exe"
+                      Link="payload\PetPlanner.exe" LogicalName="payload/PetPlanner.exe" />
+    <EmbeddedResource Include="..\_stage\app\*.dll"
+                      Link="payload\%(Filename)%(Extension)" LogicalName="payload/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\_stage\app\data.json"
+                      Link="payload\data.json" LogicalName="payload/data.json" />
+  </ItemGroup>
+
+</Project>

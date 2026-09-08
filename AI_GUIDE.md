@@ -75,7 +75,8 @@ KaoyanPlanner.WPF/
 │   ├── Controls/
 │   │   ├── TaskItemControl.xaml(.cs)         今日任务行（打卡/勾选/编辑/删除，动画完成后才落盘）
 │   │   ├── TimeBox.xaml(.cs)                 HH:mm 掩码输入
-│   │   └── HistogramControl.cs               24 小时专注直方图（自定义 OnRender）
+│   │   ├── HistogramControl.cs               24 小时专注直方图（自定义 OnRender）
+│   │   └── FocusGallery.cs                   统计页画廊：鼠标聚焦缩放 + 有界滚动（见 §5 StatsTab）
 │   ├── Views/
 │   │   ├── MainWindow.xaml(.cs)              主窗口外壳 + 页签导航 + 标题倒计时 + 位置持久化
 │   │   ├── PlanSidebar.xaml(.cs)             左侧计划导航栏（列表/切换/新建/重命名/删除）
@@ -161,7 +162,7 @@ KaoyanPlanner.WPF/
 | `Controls/TaskItemControl` | 任务行 | 勾选→完成动效（80ms 缩放）→**动画完才 Save→重建划线行**（回调查勾选态防竞态）；右侧 ✎编辑/✕删除/右键菜单 |
 | `Tabs/TimerTab` | 专注计时 | 正计时（44px 大字）、开始/暂停/重置、喝水提醒（计时不停）、今日专注统计卡、跳统计页；**右侧计划选择面板**——「不分类」置顶 + 全部**长期计划（固定任务）**，默认「不分类」（`Border.MouseLeftButtonDown` 防重入；当前目标被删/改名 → 回退「不分类」）；右侧每行显示当日该目标已专注分钟 |
 | `Services/FocusTimerService` | 计时核心 | 注入 `Func<long> clock`（生产=TickCount64）可单测；**忽略 >2000ms 空隙**（休眠不算）；整秒 `AddFocusSeconds` 各自 `Math.Round(…,3)`（镜像 Python 逐秒 round，2s=0.034 这种）；≥15s SaveQuiet 节流；只发 `HistoryChanged`；`CurrentPlan` 属性（null=不指定，由 App/TimerTab 显式赋值，服务层不读计划列表）→ 每次落盘双写总/分时长 |
-| `Tabs/StatsTab` | 专注统计 | **日/周切换**（SegmentedButtonStyle，Click 防重入）。日视图：`HistogramControl` 24h 直方图 + ◀/▶ 翻历史日 + 单日摘要 + **各计划分布卡**（色点+名称+时长+占比条+%，`未分类=总−已标记`灰显）+ 近 10 天卡。周视图（**本周一 00:00 至今**）：周总时长·日均 + 各计划**堆叠比例条**+图例。颜色走 `PlanPalette.BrushKeyFor`（按**固定任务**顺序稳定、Chart1..6 回绕、已删除任务/不分类→灰） |
+| `Tabs/StatsTab` | 专注统计 | **日/周切换**（SegmentedButtonStyle，Click 防重入）。整区统计卡放 `FocusGallery`（**鼠标聚焦缩放**：指针压着哪张卡，哪张就最高最亮/其余随「与焦点卡间距」高斯衰减变矮变淡，逐帧缓动；**有界滚动**，首末到头即停、不无限循环；滚轮/拖拽驱动，指针在内层可溢出列表上时滚轮让给它）。日视图 4 卡 = `HistogramControl` 24h 直方图 + 单日摘要 + **各计划分布卡**（色点+名称+时长+占比条+%，`未分类=总−已标记`灰显）+ 近 10 天卡，◀/▶ 翻历史日。周视图（**本周一 00:00 至今**）2 卡 = 周摘要 + 本周各计划**堆叠比例条**+图例。颜色走 `PlanPalette.BrushKeyFor`（按**固定任务**顺序稳定、Chart1..6 回绕、已删除任务/不分类→灰） |
 | `Tabs/ReminderTab` | 提醒 | `TimeBox` HH:mm 掩码 + `ReminderService`（MatchingAt/NextEnabled/TryParseHm/PendingToday）+ 未完成任务提醒配置 |
 | `Views/PlanSidebar` | 计划导航 | Notion 式：列出全部计划、点击切换、＋新建、右键重命名/删除。数据 `plans`/`active_plan` **惰性键**，任务可选 `plan` 字段，`EffectivePlan(task)`=显式优先否则 `plans[0]` |
 | `Dialogs/ReminderPopupWindow` | 提醒弹窗 | 无激活（WS_EX_NOACTIVATE）右下角，10s 自关，多弹窗栈式堆叠。**动画打在内容根上，绝不能打 Window.RenderTransform** |

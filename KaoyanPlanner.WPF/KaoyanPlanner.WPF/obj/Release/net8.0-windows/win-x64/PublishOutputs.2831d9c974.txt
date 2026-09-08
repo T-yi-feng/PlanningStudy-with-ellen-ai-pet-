@@ -1,0 +1,13 @@
+C:\Users\21495\Desktop\Coding\kaoyan_planner\packaging\_stage\app\data.json
+C:\Users\21495\Desktop\Coding\kaoyan_planner\packaging\_stage\app\desk_pet\alternate.ani
+C:\Users\21495\Desktop\Coding\kaoyan_planner\packaging\_stage\app\desk_pet\happy_1.ani
+C:\Users\21495\Desktop\Coding\kaoyan_planner\packaging\_stage\app\desk_pet\normal_1.ani
+C:\Users\21495\Desktop\Coding\kaoyan_planner\packaging\_stage\app\desk_pet\present_1.ani
+C:\Users\21495\Desktop\Coding\kaoyan_planner\packaging\_stage\app\desk_pet\talking.ani
+C:\Users\21495\Desktop\Coding\kaoyan_planner\packaging\_stage\app\desk_pet\talking_1.ani
+C:\Users\21495\Desktop\Coding\kaoyan_planner\packaging\_stage\app\D3DCompiler_47_cor3.dll
+C:\Users\21495\Desktop\Coding\kaoyan_planner\packaging\_stage\app\PenImc_cor3.dll
+C:\Users\21495\Desktop\Coding\kaoyan_planner\packaging\_stage\app\PresentationNative_cor3.dll
+C:\Users\21495\Desktop\Coding\kaoyan_planner\packaging\_stage\app\vcruntime140_cor3.dll
+C:\Users\21495\Desktop\Coding\kaoyan_planner\packaging\_stage\app\wpfgfx_cor3.dll
+C:\Users\21495\Desktop\Coding\kaoyan_planner\packaging\_stage\app\PetPlanner.exe

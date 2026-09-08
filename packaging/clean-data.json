@@ -1,0 +1,21 @@
+{
+  "title": "考研复习",
+  "exam_date": "",
+  "window_pos": null,
+  "collapsed": false,
+  "daily": {},
+  "tasks": [],
+  "frozen": false,
+  "frozen_since": "",
+  "reminders": [],
+  "timer": { "duration_min": 25 },
+  "focus_sessions": [],
+  "focus_history": {},
+  "focus_reminder": { "enabled": true, "interval_min": 60 },
+  "unfinished_reminder": { "enabled": true, "interval_min": 60 },
+  "pet_chat": { "enabled": false, "base_url": "https://open.bigmodel.cn/api/paas/v4/chat/completions", "model": "glm-4.7", "api_key": "" },
+  "pet_idle": { "enabled": false, "interval_min": 8 },
+  "caption": { "enabled": false, "model": "FunAudioLLM/SenseVoiceSmall", "language": "auto", "font_size": 18, "color": "#F5F0E6" },
+  "voice": { "enabled": false },
+  "tts": { "enabled": false, "url": "http://127.0.0.1:9880", "server_cmd": "", "ref_audio_path": "", "prompt_text": "", "prompt_lang": "zh" }
+}

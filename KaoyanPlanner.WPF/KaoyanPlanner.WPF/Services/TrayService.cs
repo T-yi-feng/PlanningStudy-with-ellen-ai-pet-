@@ -25,7 +25,7 @@ public sealed class TrayService : IDisposable
         _icon = new Forms.NotifyIcon
         {
             Icon = MakeIcon(),
-            Text = "考研复习计划",
+            Text = AppInfo.TrayText,   // 带版本名（个人版/测试版），托盘悬停即可分辨
             Visible = true,
         };
         _icon.DoubleClick += (_, _) => Toggle();

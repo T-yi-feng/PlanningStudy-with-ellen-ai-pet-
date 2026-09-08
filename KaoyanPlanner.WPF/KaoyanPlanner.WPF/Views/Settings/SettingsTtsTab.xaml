@@ -1,18 +1,19 @@
 <UserControl x:Class="KaoyanPlanner.WPF.Views.Settings.SettingsTtsTab"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:b="clr-namespace:KaoyanPlanner.WPF">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="24,20,24,24" MaxWidth="560" HorizontalAlignment="Left">
             <TextBlock Style="{StaticResource TitleText}" Text="语音播报" />
             <TextBlock Style="{StaticResource MutedText}" Margin="0,4,0,16"
-                       Text="把艾莲的话用本地 GPT-SoVITS 合成人声。改动在下次开启语音播报时生效。" TextWrapping="Wrap" />
+                       Text="{x:Static b:Brand.TtsDesc}" TextWrapping="Wrap" />
 
             <TextBlock Text="服务启动命令（可空 = 手动启动服务）" Style="{StaticResource MetadataText}" Margin="0,0,0,4" />
             <TextBox x:Name="cmdBox"
-                     ToolTip="例：cmd /c &quot;cd /d C:\Users\21495\gsvi &amp;&amp; C:\Users\21495\gsvi_venv\Scripts\python.exe api_v2.py -p 9880&quot;" />
+                     ToolTip="例：cmd /c &quot;cd /d D:\gsvi &amp;&amp; D:\gsvi\Scripts\python.exe api_v2.py -p 9880&quot;" />
 
-            <TextBlock Text="参考音频路径（艾莲音色）" Style="{StaticResource MetadataText}" Margin="0,12,0,4" />
-            <TextBox x:Name="refBox" ToolTip="例：C:/Users/21495/gsvi/custom_refs/ref_sapi_zh.wav" />
+            <TextBlock Text="{x:Static b:Brand.TtsRefLabel}" Style="{StaticResource MetadataText}" Margin="0,12,0,4" />
+            <TextBox x:Name="refBox" ToolTip="例：D:/gsvi/custom_refs/ref_sapi_zh.wav" />
 
             <TextBlock Text="参考音频文字（转写，SoVITS V3 必填）" Style="{StaticResource MetadataText}" Margin="0,12,0,4" />
             <TextBox x:Name="promptBox" ToolTip="参考音频里说的话；文件名【…】后的转写可直接用" />

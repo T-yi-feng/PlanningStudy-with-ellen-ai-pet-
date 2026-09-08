@@ -67,7 +67,15 @@ public sealed class CaptionService : IDisposable
 
     private static HttpClient CreateClient()
     {
-        var c = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        // 连接池显式调优：建连 10s 快失败、连接复用防握手堆积；整体超时 40s（弱网上传 16k 音频够用）。
+        var handler = new SocketsHttpHandler
+        {
+            ConnectTimeout = TimeSpan.FromSeconds(10),
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+            MaxConnectionsPerServer = 4,
+        };
+        var c = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(40) };
         c.DefaultRequestHeaders.Add("User-Agent", "PetPlanner/1.0");
         return c;
     }
@@ -290,7 +298,7 @@ public sealed class CaptionService : IDisposable
             string key = (_getKey() ?? "").Trim();
             if (key.Length == 0)
             {
-                StatusChanged?.Invoke("⚠ 未配置 ASR Key：右键艾莲 → 字幕设置");
+                StatusChanged?.Invoke(Brand.CaptionNoKey);
                 continue;
             }
             string text;
@@ -377,12 +385,18 @@ public sealed class CaptionService : IDisposable
                     if (code == 429 || code >= 500)
                     {
                         lastError = $"服务端繁忙({code})";
+                        await Task.Delay(600);   // 服务端瞬时过载：退避一下再换下一个模型
                         break;   // 服务端故障 → 换下一个模型
                     }
                     lastError = $"识别失败 (HTTP {code})";
                 }
                 catch (CaptionUnavailable) { throw; }
-                catch { lastError = "网络不可用"; break; }   // 网络错误 → 换下一个模型
+                catch
+                {
+                    lastError = "网络不可用";
+                    await Task.Delay(500);   // 网络抖动：退避后换下一个模型，别连续打
+                    break;   // 网络错误 → 换下一个模型
+                }
                 if (attempt + 1 < 2)
                     await Task.Delay(1000);
             }

@@ -459,22 +459,26 @@ public partial class PetWindow : Window
         if (imageB64 is not null)
         {
             SetBusy(true);
-            _ = RunAsync(() => _chat.RespondVisionAsync(t, imageB64));
+            _ = RunAsync(t, () => _chat.RespondVisionAsync(t, imageB64));
         }
         else
         {
             var (handled, reply) = _commands.HandleCommand(t);
             if (handled) { Deliver(reply); return; }
             SetBusy(true);
-            _ = RunAsync(() => _chat.RespondAsync(t));
+            _ = RunAsync(t, () => _chat.RespondAsync(t));
         }
     }
 
-    private async Task RunAsync(Func<Task<string>> work)
+    /// <summary>
+    /// 后台跑 AI 回复并投递。把本次输入文本快照进参数——不能用 _lastUserText 兜底：
+    /// 它在 Deliver→ReactToReply 里会被清空，连续发两条消息时兜底会拿错文本。
+    /// </summary>
+    private async Task RunAsync(string text, Func<Task<string>> work)
     {
         string reply;
         try { reply = await Task.Run(work); }
-        catch { reply = PetChatService.LocalReply(_lastUserText); }
+        catch { reply = PetChatService.LocalReply(text); }
         _ = Dispatcher.InvokeAsync(() => Deliver(reply));   // 回 UI 线程投递，无需等待
     }
 
@@ -492,7 +496,7 @@ public partial class PetWindow : Window
     {
         _busy = busy;
         petInput.IsEnabled = !busy;
-        inputPlaceholder.Text = busy ? "艾莲在想着…" : "和艾莲说点什么…（可粘贴图片）";
+        inputPlaceholder.Text = busy ? Brand.PetBusyPlaceholder : Brand.PetPlaceholder;
         if (_chatWindow is not null) _chatWindow.SetBusy(busy);
     }
 

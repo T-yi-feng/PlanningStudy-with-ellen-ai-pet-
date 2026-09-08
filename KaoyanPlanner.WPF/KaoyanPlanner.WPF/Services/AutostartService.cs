@@ -4,14 +4,15 @@ using Microsoft.Win32;
 namespace KaoyanPlanner.WPF.Services;
 
 /// <summary>
-/// 开机自启：HKCU\Software\Microsoft\Windows\CurrentVersion\Run 值 KaoyanPlanner → exe 路径
-/// （autostart.py 移植，无需管理员权限）。IsEnabled 只在条目确实指向当前 exe 时算开启
+/// 开机自启：HKCU\Software\Microsoft\Windows\CurrentVersion\Run 值（按版本区分）→ exe 路径
+/// （autostart.py 移植，无需管理员权限）。值名按版本隔离（AppInfo）——个人版与测试版各占一项，
+/// 勾选互不覆盖。IsEnabled 只在条目确实指向当前 exe 时算开启
 /// （项目移动/exe 挪位后视为未开启，勾上会重写正确路径）；SetEnabled 开=写入、关=删除。
 /// </summary>
 public static class AutostartService
 {
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string ValueName = "PetPlanner";
+    private static string ValueName => AppInfo.AutostartValueName;
 
     private static string? CurrentExe
     {

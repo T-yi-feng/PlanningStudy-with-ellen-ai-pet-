@@ -21,3 +21,12 @@ dist/
 
 # WPF 重写版发布产物（自包含单文件 exe）—— 不入库
 dist-wpf/
+
+# 公共分发打包（packaging/）：
+#   中间产物 staging（含清理后的应用本体，供安装向导内嵌）
+#   安装向导工程的 bin/obj
+#   最终交付物 PetPlanner-Setup.exe（200MB+，不入库）
+packaging/_stage/
+packaging/PetPlanner.Setup/bin/
+packaging/PetPlanner.Setup/obj/
+PetPlanner-Setup.exe

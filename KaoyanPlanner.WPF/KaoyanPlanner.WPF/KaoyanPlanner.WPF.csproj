@@ -9,9 +9,17 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>PetPlanner</AssemblyName>
     <RootNamespace>KaoyanPlanner.WPF</RootNamespace>
+    <!-- 应用版本：关于页与 Windows 文件属性展示（AppInfo.Version 与此保持一致） -->
+    <Version>2.0.1</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>..\..\icon.ico</ApplicationIcon>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <!-- 公共中性版开关：-p:PublicNeutral=true 时定义 PUBLIC_NEUTRAL → Brand.cs 走「小蓝」分支。
+         默认不带此参数 = 个人版「艾莲」，此处不触碰 DefineConstants（保持 SDK 默认值）。 -->
+    <DefineConstants Condition="'$(PublicNeutral)' == 'true'">$(DefineConstants);PUBLIC_NEUTRAL</DefineConstants>
+    <!-- 安装包测试版开关：-p:TestBuild=true 时定义 TEST_BUILD → AppInfo.cs 走「测试版」身份
+         （单实例管道/自启项/关于页/托盘区分），与个人版互不干扰；打包脚本会带上它。 -->
+    <DefineConstants Condition="'$(TestBuild)' == 'true'">$(DefineConstants);TEST_BUILD</DefineConstants>
   </PropertyGroup>
 
   <!-- 开发运行：把仓库根的 data.json 拷到输出目录一份（改的只是副本，真文件不动） -->

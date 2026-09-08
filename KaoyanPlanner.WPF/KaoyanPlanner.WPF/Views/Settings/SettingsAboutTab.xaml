@@ -1,11 +1,12 @@
 <UserControl x:Class="KaoyanPlanner.WPF.Views.Settings.SettingsAboutTab"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:b="clr-namespace:KaoyanPlanner.WPF">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="24,20,24,24" MaxWidth="560" HorizontalAlignment="Left">
             <TextBlock Style="{StaticResource TitleText}" Text="关于" />
             <TextBlock Style="{StaticResource MutedText}" Margin="0,4,0,16"
-                       Text="考研计划 · 桌宠艾莲陪你复习" TextWrapping="Wrap" />
+                       Text="{x:Static b:Brand.AboutTagline}" TextWrapping="Wrap" />
 
             <TextBlock x:Name="versionText" Style="{StaticResource BodyText}" Margin="0,0,0,6" />
             <TextBlock Style="{StaticResource MetadataText}" TextWrapping="Wrap"
@@ -17,7 +18,7 @@
             <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Margin="0,6,0,0" LineHeight="26"
                        Text="① 在 exe 旁的 desk_pet 文件夹里新建一个子文件夹，名字就是形象名（如「小蓝」）。&#10;② 把四组动画放进去：normal.ani（常态）、talking.ani（说话）、happy.ani（开心）、present.ani（完成）。&#10;③ 可选 sleep.ani（睡觉，缺省用常态）和 preview.png（设置里的预览图）。&#10;④ 打开「设置 → 桌宠」就能看到并一键切换；也可以直接把整个文件夹拖进设置页的虚线框。" />
             <TextBlock Style="{StaticResource MetadataText}" TextWrapping="Wrap" Margin="0,8,0,0"
-                       Text="提示：兼容旧版文件名（normal_1.ani / talking_1.ani / happy_1.ani / present_1.ani / alternate.ani）——复制默认艾莲的动画文件也能直接用。" />
+                       Text="{x:Static b:Brand.AboutSkinHint}" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

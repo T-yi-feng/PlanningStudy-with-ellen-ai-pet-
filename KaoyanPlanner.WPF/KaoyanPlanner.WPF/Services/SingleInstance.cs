@@ -5,13 +5,15 @@ using System.Text;
 namespace KaoyanPlanner.WPF.Services;
 
 /// <summary>
-/// 单实例锁：NamedPipe 对齐旧版 Python 的 QLocalServer（同名管道 "KaoyanPlanner_SingleInstance"，
-/// 与 PyQt exe 天然互斥）。第二实例启动 → 连上管道发 "show" → 退出；
-/// 主实例收到 "show" → OnWake（还原窗口）。处理完重新监听，后续第二实例仍能唤醒。
+/// 单实例锁：NamedPipe 对齐旧版 Python 的 QLocalServer（同名管道，与 PyQt exe 天然互斥）。
+/// 管道名按版本区分（AppInfo）——个人版与安装包测试版互不冲突，两版可同时运行；
+/// 同一版本内第二实例启动 → 连上管道发 "show" → 退出；主实例收到 "show" → OnWake（还原窗口）。
+/// 处理完重新监听，后续第二实例仍能唤醒。
 /// </summary>
 public sealed class SingleInstance : IDisposable
 {
-    public const string PipeName = "PetPlanner_SingleInstance";
+    /// <summary>管道名：按版本隔离（个人版 / 测试版各用各的管道）。</summary>
+    public static string PipeName => AppInfo.SingleInstancePipeName;
 
     private readonly Action _onWake;
     private NamedPipeServerStream? _server;

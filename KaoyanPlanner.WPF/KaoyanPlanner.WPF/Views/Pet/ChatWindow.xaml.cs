@@ -27,10 +27,7 @@ public partial class ChatWindow : Window
         DwmInterop.ApplyRoundedCorners(this);
         PositionNearPet();
 
-        AppendMessage("pet",
-            "你好呀～我是艾莲，你的桌面宠物。" +
-            "可以陪你聊天、帮你管计划，比如「添加 背单词」「划掉 背单词」" +
-            "「列出计划」，也可以给我发图片哦。");
+        AppendMessage("pet", Brand.PetGreeting);
     }
 
     private void PositionNearPet()

@@ -158,7 +158,7 @@ public sealed class TtsService : IDisposable
         if (await ReachableAsync())
             return true;
         KillProc();
-        Warn("⚠ 语音服务没起来：先装好 GSVI + 艾莲模型（右键「语音播报设置…」填启动命令）");
+        Warn(Brand.TtsNeedService);
         return false;
     }
 
@@ -188,7 +188,7 @@ public sealed class TtsService : IDisposable
         string refPath = ResolveRefAudio(RefAudioPath);
         if (refPath.Length == 0)
         {
-            Warn("⚠ 没配置参考音频：右键「语音播报设置…」填艾莲的参考音频路径");
+            Warn(Brand.TtsNeedRef);
             return;
         }
         string prompt = PromptText.Trim();
@@ -221,7 +221,7 @@ public sealed class TtsService : IDisposable
             }
             if (data.Length == 0 || !(IsRiff(data) || IsOgg(data)))
             {
-                Warn("⚠ 艾莲的声音没响：本地语音服务未就绪");
+                Warn(Brand.TtsVoiceFail);
                 return;
             }
             string path = Path.Combine(_cacheDir, "ellen_" + Interlocked.Increment(ref _seq) + ".wav");
@@ -231,7 +231,7 @@ public sealed class TtsService : IDisposable
         catch
         {
             // 服务没起/网络出错 → 安静跳过，只节流提示
-            Warn("⚠ 艾莲的声音没响：本地语音服务未就绪");
+            Warn(Brand.TtsVoiceFail);
         }
     }
 

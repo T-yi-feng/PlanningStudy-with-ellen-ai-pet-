@@ -38,20 +38,24 @@ public sealed class PetChatService
 
     private static HttpClient CreateClient()
     {
-        var c = new HttpClient { Timeout = TimeSpan.FromSeconds(25) };
+        // 连接池显式调优：DNS/建连超时 10s（快失败）、连接复用防 TLS 握手堆积、
+        // 单域名连接上限防并发打爆。整体超时放宽到 45s——大模型长回复在弱网下
+        // 常要 20~40s，25s 太容易误杀（这是「API 不稳定/经常掉回本地话术」的常见来源）。
+        var handler = new SocketsHttpHandler
+        {
+            ConnectTimeout = TimeSpan.FromSeconds(10),
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+            MaxConnectionsPerServer = 8,
+            AutomaticDecompression = System.Net.DecompressionMethods.All,
+        };
+        var c = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(45) };
         c.DefaultRequestHeaders.Add("User-Agent", "KaoyanPlanner.WPF");
         return c;
     }
 
-    public const string SystemPrompt =
-        "你是《绝区零》里的艾莲·乔，现在被我请来当陪伴考研学生复习的桌面宠物。" +
-        "人设：慵懒清冷、奉行「节能主义」，怕麻烦、爱摸鱼，说话三言两语、一切从简，" +
-        "常把「麻烦」「累了」「困」「想下班」挂在嘴边；嘴上嫌弃，其实很在意主人，" +
-        "是嘴硬心软的反差萌；爱叼棒棒糖，偶尔冒点鲨鱼梗。" +
-        "请用这种慵懒、简短、带点嫌弃又藏不住关心的中文回复，每句不超过 50 字，" +
-        "多用省略号、少用感叹号；要鼓励主人时也是那种「就这？不过…还不错」的语气。" +
-        "就以艾莲身份说话，不要透露你是 AI 模型。" +
-        "如果用户发来图片，先简短描述图片里的内容，再给出相关回应。";
+    /// <summary>AI 闲聊系统人格（个人版=艾莲·乔，公共中性版=小蓝，见 Brand）。</summary>
+    public static string SystemPrompt => Brand.AiSystemPrompt;
 
     // ------------------------------------------------------------ 配置
 
@@ -151,18 +155,18 @@ public sealed class PetChatService
             string primary = DataStore.GetString(cfg["model"]).Trim();
             if (primary.Length == 0) primary = DefaultModel;
 
+            // 回退链顺序：配置的主模型优先，再补兜底模型（去重）——此前把兜底放前面，
+            // 用户配置了自定义模型时反而先打兜底，顺序反了。
             var models = new List<string>();
-            foreach (string m in TxtFallbackModels) models.Add(m);
-            if (!models.Contains(primary)) models.Add(primary);
+            if (primary.Length > 0 && !models.Contains(primary)) models.Add(primary);
+            foreach (string m in TxtFallbackModels) if (!models.Contains(m)) models.Add(m);
 
             string ctxHint = context.Length > 0
                 ? "（可偶尔提起当前状态：" + context + "（只说闲话，不要给操作建议）。"
                 : "";
             string prompt =
                 "现在不要回答我、不要提问、不要打招呼。只按你的人设输出 " + n +
-                " 句艾莲的日常碎碎念/懒人闲话/给复习中的主人的小声鼓励，一句一行，" +
-                "每句不超过 30 字，不要编号，不要「好的」「明白」这类纯回应词。" +
-                "保持慵懒、怕麻烦、嘴硬心软、三言两语、多用省略号少用感叹号的调子。" + ctxHint;
+                Brand.IdleInstructionTail + ctxHint;
 
             var messages = new JsonArray();
             messages.Add(new JsonObject { ["role"] = "system", ["content"] = SystemPrompt });
@@ -203,8 +207,9 @@ public sealed class PetChatService
         JsonArray messages, double temperature, CancellationToken ct)
     {
         Exception? lastErr = null;
-        foreach (string model in models)
+        for (int idx = 0; idx < models.Count; idx++)
         {
+            string model = models[idx];
             var payload = new JsonObject
             {
                 ["model"] = model,
@@ -224,6 +229,12 @@ public sealed class PetChatService
                     // 坑（2026-08-31）：glm-4.6v-flash 已下线持续 429，且 vision 主模型 glm-4.7 收
                     // 图片会 400——这两种都必须能滚到下一个模型，绝不能 throw 中断整条链。
                     lastErr = new InvalidOperationException("API HTTP " + (int)resp.StatusCode);
+                    if (idx < models.Count - 1)
+                    {
+                        // 429/5xx 是服务端瞬时过载：稍等再试下一个模型，避免连续打爆
+                        if ((int)resp.StatusCode == 429 || (int)resp.StatusCode >= 500)
+                            await Task.Delay(600, ct).ConfigureAwait(false);
+                    }
                     continue;
                 }
                 string body = await resp.Content.ReadAsStringAsync(ct);
@@ -245,11 +256,18 @@ public sealed class PetChatService
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
-                throw;
+                throw;   // 调用方主动取消（关窗/退出）→ 不再试，直接向上抛
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;   // 网络/超时：整体失败（与 Python 一致，不逐个换模型）
+                // 网络/超时（TaskCanceledException、HttpRequestException、SocketException 等）：
+                // 绝不中断整条回退链——记下原因，退避一下换下一个模型。
+                // 坑（2026-09-08 修复）：此前这里直接 throw，单点网络抖动/慢响应就会让
+                // 整个对话掉进本地话术，体验上就是「艾莲/小蓝经常不回话」。与 AI_GUIDE §10.8
+                // 「回退链必须无条件多模型（任意 HTTP 错误都 continue）」同一理由，网络错误同样 continue。
+                lastErr = ex;
+                if (idx < models.Count - 1)
+                    await Task.Delay(500, ct).ConfigureAwait(false);
             }
         }
         throw lastErr ?? new InvalidOperationException("所有模型均不可用");

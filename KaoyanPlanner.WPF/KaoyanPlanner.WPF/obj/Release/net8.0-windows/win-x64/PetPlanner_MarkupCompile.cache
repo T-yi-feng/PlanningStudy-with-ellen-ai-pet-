@@ -8,11 +8,11 @@ C:\Users\21495\Desktop\Coding\kaoyan_planner\KaoyanPlanner.WPF\KaoyanPlanner.WPF
 KaoyanPlanner.WPF
 none
 false
-TRACE;RELEASE;NET;NET8_0;NETCOREAPP
+TRACE;PUBLIC_NEUTRAL;RELEASE;NET;NET8_0;NETCOREAPP
 C:\Users\21495\Desktop\Coding\kaoyan_planner\KaoyanPlanner.WPF\KaoyanPlanner.WPF\App.xaml
 272005443515
 
-49543038492
+52-904493415
 214731633191
 Controls\TaskItemControl.xaml;Controls\TimeBox.xaml;Theme\Animations.xaml;Theme\Colors.Dark.xaml;Theme\Colors.xaml;Theme\Styles.xaml;Theme\Typography.xaml;Views\Dialogs\FixedTaskDialog.xaml;Views\Dialogs\PlanNameDialog.xaml;Views\Dialogs\ReminderPopupWindow.xaml;Views\MainWindow.xaml;Views\Pet\BlackboardWindow.xaml;Views\Pet\ChatWindow.xaml;Views\Pet\PetBubbleWindow.xaml;Views\Pet\PetWindow.xaml;Views\PlanSidebar.xaml;Views\Settings\SettingsAboutTab.xaml;Views\Settings\SettingsCaptionTab.xaml;Views\Settings\SettingsChatTab.xaml;Views\Settings\SettingsGeneralTab.xaml;Views\Settings\SettingsPage.xaml;Views\Settings\SettingsPetTab.xaml;Views\Settings\SettingsTtsTab.xaml;Views\Tabs\PlanTab.xaml;Views\Tabs\ReminderTab.xaml;Views\Tabs\StatsTab.xaml;Views\Tabs\TimerTab.xaml;
 

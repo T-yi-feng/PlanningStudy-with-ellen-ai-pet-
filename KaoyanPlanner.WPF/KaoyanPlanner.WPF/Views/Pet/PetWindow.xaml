@@ -1,7 +1,8 @@
 <Window x:Class="KaoyanPlanner.WPF.Views.Pet.PetWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="艾莲" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        xmlns:b="clr-namespace:KaoyanPlanner.WPF"
+        Title="{x:Static b:Brand.PetName}" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False" ShowActivated="False"
         ResizeMode="NoResize" SizeToContent="WidthAndHeight" Cursor="Hand"
         Loaded="Window_Loaded">
@@ -51,7 +52,7 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Grid>
-                    <TextBlock x:Name="inputPlaceholder" Text="和艾莲说点什么…（可粘贴图片）"
+                    <TextBlock x:Name="inputPlaceholder" Text="{x:Static b:Brand.PetPlaceholder}"
                                Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"
                                Margin="8,0" IsHitTestVisible="False" FontSize="12" />
                     <TextBox x:Name="petInput" Height="28" BorderThickness="0" Background="Transparent"

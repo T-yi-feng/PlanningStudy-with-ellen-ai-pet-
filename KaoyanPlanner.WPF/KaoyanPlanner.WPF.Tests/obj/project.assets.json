@@ -607,7 +607,7 @@
           "build/net6.0/xunit.runner.visualstudio.props": {}
         }
       },
-      "PetPlanner/1.0.0": {
+      "PetPlanner/2.0.1": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v8.0",
         "dependencies": {
@@ -1348,7 +1348,7 @@
         "xunit.runner.visualstudio.nuspec"
       ]
     },
-    "PetPlanner/1.0.0": {
+    "PetPlanner/2.0.1": {
       "type": "project",
       "path": "../KaoyanPlanner.WPF/KaoyanPlanner.WPF.csproj",
       "msbuildProject": "../KaoyanPlanner.WPF/KaoyanPlanner.WPF.csproj"
@@ -1357,7 +1357,7 @@
   "projectFileDependencyGroups": {
     "net8.0-windows7.0": [
       "Microsoft.NET.Test.Sdk >= 17.11.1",
-      "PetPlanner >= 1.0.0",
+      "PetPlanner >= 2.0.1",
       "xunit >= 2.9.2",
       "xunit.runner.visualstudio >= 2.8.2"
     ]

@@ -9,10 +9,10 @@
       "KaoyanPlanner.WPF.Tests/1.0.0": {
         "dependencies": {
           "Microsoft.NET.Test.Sdk": "17.11.1",
-          "PetPlanner": "1.0.0",
+          "PetPlanner": "2.0.1",
           "xunit": "2.9.2",
           "xunit.runner.visualstudio": "2.8.2",
-          "PetPlanner.Reference": "1.0.0.0"
+          "PetPlanner.Reference": "2.0.1.0"
         },
         "runtime": {
           "KaoyanPlanner.WPF.Tests.dll": {}
@@ -435,22 +435,22 @@
         }
       },
       "xunit.runner.visualstudio/2.8.2": {},
-      "PetPlanner/1.0.0": {
+      "PetPlanner/2.0.1": {
         "dependencies": {
           "NAudio": "2.2.1"
         },
         "runtime": {
           "PetPlanner.dll": {
-            "assemblyVersion": "1.0.0",
+            "assemblyVersion": "2.0.1",
             "fileVersion": ""
           }
         }
       },
-      "PetPlanner.Reference/1.0.0.0": {
+      "PetPlanner.Reference/2.0.1.0": {
         "runtime": {
           "PetPlanner.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
+            "assemblyVersion": "2.0.1.0",
+            "fileVersion": "2.0.1.0"
           }
         }
       }
@@ -637,12 +637,12 @@
       "path": "xunit.runner.visualstudio/2.8.2",
       "hashPath": "xunit.runner.visualstudio.2.8.2.nupkg.sha512"
     },
-    "PetPlanner/1.0.0": {
+    "PetPlanner/2.0.1": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
-    "PetPlanner.Reference/1.0.0.0": {
+    "PetPlanner.Reference/2.0.1.0": {
       "type": "reference",
       "serviceable": false,
       "sha512": ""
