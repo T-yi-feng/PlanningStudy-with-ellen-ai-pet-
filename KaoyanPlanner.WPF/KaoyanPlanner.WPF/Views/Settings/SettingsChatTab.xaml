@@ -10,14 +10,36 @@
 
             <CheckBox x:Name="enabledCheck" Content="启用 AI 聊天" Margin="0,0,0,4" />
 
-            <TextBlock Text="接口地址 base_url" Style="{StaticResource MetadataText}" Margin="0,12,0,4" />
+            <TextBlock Text="接口地址" Style="{StaticResource MetadataText}" Margin="0,12,0,4" />
             <TextBox x:Name="urlBox" ToolTip="OpenAI 兼容的 /chat/completions 地址" />
 
-            <TextBlock Text="模型 model" Style="{StaticResource MetadataText}" Margin="0,12,0,4" />
-            <TextBox x:Name="modelBox" ToolTip="如 glm-4.7 / glm-4-flash（视觉用 glm-4v-flash）" />
+            <TextBlock Text="模型" Style="{StaticResource MetadataText}" Margin="0,12,0,4" />
+            <ComboBox x:Name="modelBox" IsEditable="True" Height="32"
+                      ToolTip="可选 glm-4.7 / glm-4-flash / glm-4v-flash，也可直接输入其它模型名">
+                <ComboBoxItem Content="glm-4.7" />
+                <ComboBoxItem Content="glm-4-flash" />
+                <ComboBoxItem Content="glm-4v-flash" />
+            </ComboBox>
 
             <TextBlock Text="API Key" Style="{StaticResource MetadataText}" Margin="0,12,0,4" />
-            <TextBox x:Name="keyBox" ToolTip="存于 data.json 的 pet_chat 配置" />
+            <Grid>
+                <PasswordBox x:Name="keyBox" ToolTip="存于 data.json 的 pet_chat 配置" />
+                <TextBox x:Name="keyBoxPlain" Visibility="Collapsed"
+                         ToolTip="存于 data.json 的 pet_chat 配置" />
+            </Grid>
+
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <CheckBox x:Name="showKeyCheck" Content="显示密钥" FontSize="12" />
+                <TextBlock Style="{StaticResource MetadataText}" Margin="8,2,0,0"
+                           Text="仅在本地 data.json 中明文保存，注意保管" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <Button x:Name="testConnBtn" Content="测试连接" Style="{StaticResource SecondaryButtonStyle}"
+                        Padding="12,4" Click="TestConn_Click" ToolTip="检查接口地址与密钥是否可用" />
+                <TextBlock Style="{StaticResource MutedText}" Margin="10,4,0,0"
+                           Text="保存后到桌宠聊天里发一句话即可完整验证" VerticalAlignment="Center" />
+            </StackPanel>
 
             <Border Style="{StaticResource CardStyle}" Margin="0,16,0,0" Padding="14,12">
                 <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap"

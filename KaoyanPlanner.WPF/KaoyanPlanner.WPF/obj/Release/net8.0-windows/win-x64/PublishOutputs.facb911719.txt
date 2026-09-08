@@ -1,9 +1,0 @@
-C:\Users\21495\Desktop\Coding\kaoyan_planner\KaoyanPlanner.WPF\publish\data.json
-C:\Users\21495\Desktop\Coding\kaoyan_planner\KaoyanPlanner.WPF\publish\desk_pet\alternate.ani
-C:\Users\21495\Desktop\Coding\kaoyan_planner\KaoyanPlanner.WPF\publish\desk_pet\happy_1.ani
-C:\Users\21495\Desktop\Coding\kaoyan_planner\KaoyanPlanner.WPF\publish\desk_pet\normal_1.ani
-C:\Users\21495\Desktop\Coding\kaoyan_planner\KaoyanPlanner.WPF\publish\desk_pet\present_1.ani
-C:\Users\21495\Desktop\Coding\kaoyan_planner\KaoyanPlanner.WPF\publish\desk_pet\talking.ani
-C:\Users\21495\Desktop\Coding\kaoyan_planner\KaoyanPlanner.WPF\publish\desk_pet\talking_1.ani
-C:\Users\21495\Desktop\Coding\kaoyan_planner\KaoyanPlanner.WPF\publish\PetPlanner.pdb
-C:\Users\21495\Desktop\Coding\kaoyan_planner\KaoyanPlanner.WPF\publish\PetPlanner.exe

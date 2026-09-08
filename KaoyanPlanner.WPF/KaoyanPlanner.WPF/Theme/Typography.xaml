@@ -4,11 +4,18 @@
     <!-- 字体：中文走微软雅黑，拉丁/数字走 Segoe UI（WPF 按字形回退） -->
     <FontFamily x:Key="UIFont">Segoe UI, Microsoft YaHei UI</FontFamily>
     <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
+    <!-- 图标字形（Win10+ 内置 MDL2，Win11 回退 Fluent；避免 emoji 豆腐块） -->
+    <FontFamily x:Key="IconFont">Segoe MDL2 Assets, Segoe Fluent Icons, Segoe UI Symbol</FontFamily>
+
+    <!-- Codex 风字体开关：偏粗（Semibold）⇄ 常规（Normal），设置页「外观」可切换。
+         全部交互文本（按钮/输入/菜单）经 {DynamicResource UiFontWeight} 引用，切换即全局生效。 -->
+    <FontWeight x:Key="UiFontWeight">SemiBold</FontWeight>
 
     <!-- 隐式正文样式：14px / 22px 行高（WPF 无 line-height，用 LineHeight） -->
     <Style TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="LineHeight" Value="22" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
@@ -17,6 +24,7 @@
     <Style x:Key="BodyText" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="LineHeight" Value="22" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
     </Style>
@@ -25,6 +33,7 @@
     <Style x:Key="MetadataText" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
         <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="LineHeight" Value="18" />
         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
     </Style>

@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using System.Text.Json.Nodes;
 using System.Windows;
@@ -40,6 +41,9 @@ public partial class MainWindow : Window
     private string _currentTag = "plan";
     private string _settingsPrevTag = "plan";
     private SettingsPage? _settingsPage;
+
+    // Ctrl+K 命令面板：命令集（重建于每次打开，标题随状态变化）
+    private readonly List<(string Key, string Desc, Action Run)> _cmdItems = new();
 
     /// <summary>托盘「退出」时置 true 放行 OnClosing；否则关闭只隐藏到托盘。</summary>
     public bool AllowClose { get; set; }
@@ -86,6 +90,124 @@ public partial class MainWindow : Window
         _restoring = false;
         ApplyTopmost(DataStore.GetBool(_store.Data["window_topmost"], true));
         UpdateHeader();
+
+        // Ctrl+K 命令面板
+        cmdPopup.PlacementTarget = this;
+        PreviewKeyDown += Main_PreviewKeyDown;
+        cmdInput.TextChanged += (_, _) => FilterCommands();
+        cmdList.SelectionChanged += (_, _) => cmdList.ScrollIntoView(cmdList.SelectedItem);
+    }
+
+    // ------------------------------------------------------------ Ctrl+K 命令面板
+
+    private void Main_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.K && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            ToggleCommandPalette();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape && cmdPopup.IsOpen)
+        {
+            cmdPopup.IsOpen = false;
+            e.Handled = true;
+        }
+    }
+
+    private void ToggleCommandPalette()
+    {
+        if (cmdPopup.IsOpen) { cmdPopup.IsOpen = false; return; }
+        OpenCommandPalette();
+    }
+
+    private void OpenCommandPalette()
+    {
+        BuildCommands();
+        cmdInput.Clear();
+        FilterCommands();
+        cmdPopup.IsOpen = true;
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
+        {
+            cmdInput.Focus();
+            cmdInput.CaretIndex = cmdInput.Text.Length;
+        }));
+    }
+
+    private void BuildCommands()
+    {
+        _cmdItems.Clear();
+        bool frozen = DataStore.GetBool(_store.Data["frozen"]);
+
+        _cmdItems.Add(("今日计划", "切换到今日计划页", () => SelectTab("plan")));
+        _cmdItems.Add(("专注计时", "切换到专注计时页", () => SelectTab("timer")));
+        _cmdItems.Add(("提醒", "切换到提醒页", () => SelectTab("reminder")));
+        _cmdItems.Add(("专注统计", "切换到统计页", () => SelectTab("stats")));
+        _cmdItems.Add(("设置", "打开设置", () => SelectTab("settings")));
+        _cmdItems.Add(("新建任务", "切到今日计划并开始输入", () => { SelectTab("plan"); _planTab.FocusNewTask(); }));
+        _cmdItems.Add((frozen ? "解冻任务" : "冻结任务", frozen ? "恢复固定任务打卡" : "暂停固定任务打卡", () => _planTab.ToggleFrozen()));
+        _cmdItems.Add(("清理已完成", "删除当前计划已完成的临时与固定任务", () => _planTab.ClearDoneNow()));
+        _cmdItems.Add(("桌宠聊天", "打开与艾莲的聊天窗口", () => PetWindow?.OpenChat()));
+        _cmdItems.Add((PetWindow is { IsVisible: true } ? "隐藏桌宠" : "显示桌宠", "显示或隐藏桌宠窗", () =>
+        {
+            if (PetWindow is { IsVisible: true }) PetWindow.HidePet();
+            else PetWindow?.ShowPet();
+        }));
+        _cmdItems.Add(("通用设置", "打开设置 · 通用", () => NavigateToSettings("general")));
+        _cmdItems.Add(("AI 聊天设置", "打开设置 · AI 聊天", () => NavigateToSettings("chat")));
+        _cmdItems.Add(("语音设置", "打开设置 · 语音播报", () => NavigateToSettings("tts")));
+        _cmdItems.Add(("桌宠设置", "打开设置 · 桌宠", () => NavigateToSettings("pet")));
+    }
+
+    private void FilterCommands()
+    {
+        string q = cmdInput.Text.Trim();
+        cmdList.Items.Clear();
+        foreach (var (key, desc, run) in _cmdItems)
+        {
+            if (q.Length == 0 || key.Contains(q, StringComparison.OrdinalIgnoreCase)
+                || desc.Contains(q, StringComparison.OrdinalIgnoreCase))
+            {
+                var item = new ListBoxItem
+                {
+                    Content = $"{key}  —  {desc}",
+                    Tag = run,
+                    FontSize = 13,
+                    Padding = new Thickness(8, 5, 8, 5),
+                };
+                cmdList.Items.Add(item);
+            }
+        }
+        if (cmdList.Items.Count > 0) cmdList.SelectedIndex = 0;
+    }
+
+    private void RunSelectedCommand()
+    {
+        if (cmdList.SelectedItem is ListBoxItem { Tag: Action run })
+        {
+            cmdPopup.IsOpen = false;
+            run();
+        }
+    }
+
+    private void CmdInput_KeyDown(object sender, KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Enter:
+                RunSelectedCommand();
+                e.Handled = true;
+                break;
+            case Key.Down:
+                if (cmdList.Items.Count > 0)
+                    cmdList.SelectedIndex = (cmdList.SelectedIndex + 1) % cmdList.Items.Count;
+                e.Handled = true;
+                break;
+            case Key.Up:
+                if (cmdList.Items.Count > 0)
+                    cmdList.SelectedIndex = (cmdList.SelectedIndex - 1 + cmdList.Items.Count) % cmdList.Items.Count;
+                e.Handled = true;
+                break;
+        }
     }
 
     /// <summary>置顶开关（设置窗口调用）；默认开启，贴合旧版浮窗习惯。</summary>

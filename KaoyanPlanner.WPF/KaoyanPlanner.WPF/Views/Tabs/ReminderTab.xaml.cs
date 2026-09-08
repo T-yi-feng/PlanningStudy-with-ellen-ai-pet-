@@ -31,8 +31,7 @@ public partial class ReminderTab : UserControl
 
         var cfg = DataStore.GetObj(_store.Data, "unfinished_reminder");
         unfinishedCheck.IsChecked = DataStore.GetBool(cfg?["enabled"], true);
-        long iv = DataStore.GetInt(cfg?["interval_min"], 60);
-        intervalInput.Text = Math.Clamp(iv, 10, 180).ToString(CultureInfo.InvariantCulture);
+        intervalStepper.Value = (int)Math.Clamp(DataStore.GetInt(cfg?["interval_min"], 60), 10, 180);
         _loading = false;
 
         // Click（非 Checked）防重入；程序化赋值不触发
@@ -242,32 +241,11 @@ public partial class ReminderTab : UserControl
 
     private void UnfinishedCheck_Click(object sender, RoutedEventArgs e) => SaveUnfinishedConfig();
 
-    private void Interval_PreviewTextInput(object sender, TextCompositionEventArgs e)
-    {
-        foreach (char c in e.Text)
-            if (!char.IsDigit(c))
-            {
-                e.Handled = true;
-                return;
-            }
-    }
-
-    private void Interval_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter) Keyboard.ClearFocus();   // 触发 LostFocus → 提交
-    }
-
-    private void Interval_LostFocus(object sender, RoutedEventArgs e)
-    {
-        if (_loading) return;
-        if (!long.TryParse(intervalInput.Text, out long v)) v = 60;
-        v = Math.Clamp(v, 10, 180);
-        intervalInput.Text = v.ToString(CultureInfo.InvariantCulture);
-        SaveUnfinishedConfig();
-    }
+    private void IntervalStepper_Changed(int value) => SaveUnfinishedConfig();
 
     private void SaveUnfinishedConfig()
     {
+        if (_loading) return;
         var cfg = DataStore.GetObj(_store.Data, "unfinished_reminder");
         if (cfg is null)
         {
@@ -275,8 +253,7 @@ public partial class ReminderTab : UserControl
             _store.Data["unfinished_reminder"] = cfg;
         }
         cfg["enabled"] = unfinishedCheck.IsChecked == true;
-        if (long.TryParse(intervalInput.Text, out long v))
-            cfg["interval_min"] = Math.Clamp(v, 10, 180);
+        cfg["interval_min"] = Math.Clamp(intervalStepper.Value, 10, 180);
         _store.Save();
         _heartbeat.UpdateUnfinishedTimer();
     }

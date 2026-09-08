@@ -100,7 +100,7 @@ public partial class SettingsPage : UserControl
         "general" => _general ??= new SettingsGeneralTab(_store, _host),
         "pet" => _pet ??= new SettingsPetTab(_store, _host),
         "chat" => _chat ??= new SettingsChatTab(_store),
-        "tts" => _tts ??= new SettingsTtsTab(_store),
+        "tts" => _tts ??= new SettingsTtsTab(_store, _host),
         "caption" => _caption ??= new SettingsCaptionTab(_store, _host),
         _ => _about ??= new SettingsAboutTab(),
     };

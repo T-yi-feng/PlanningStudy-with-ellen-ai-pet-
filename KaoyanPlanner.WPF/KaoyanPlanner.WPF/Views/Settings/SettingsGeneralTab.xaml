@@ -18,6 +18,10 @@
             <CheckBox x:Name="reduceMotionCheck" Content="降低动效" Margin="0,12,0,0"
                       ToolTip="关闭面板切换动画，减少晃动" />
 
+            <TextBlock Text="外观" Style="{StaticResource TitleText}" Margin="0,20,0,4" />
+            <CheckBox x:Name="codexFontCheck" Content="Codex 风格字体（偏粗体）" Margin="0,8,0,0"
+                      ToolTip="界面文字使用更粗的无衬线字体（蓝底文字恒为白色，不受此开关影响）" />
+
             <Border Style="{StaticResource CardStyle}" Margin="0,20,0,0" Padding="14,12">
                 <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap"
                            Text="修改考研日期会立刻刷新标题栏的「距考研还有 N 天」倒计时。" />

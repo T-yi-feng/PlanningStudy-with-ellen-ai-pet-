@@ -34,11 +34,10 @@ public partial class TimerTab : UserControl
         _focus = focus;
         _openStats = openStats;
 
-        // 喝水提醒配置（Click/TextChanged 在 InitializeComponent 后挂，程序化赋值不重入）
+        // 喝水提醒配置（Click/ValueChanged 在 InitializeComponent 后挂，程序化赋值不重入）
         var cfg = DataStore.GetObj(_store.Data, "focus_reminder");
         remindCheck.IsChecked = DataStore.GetBool(cfg?["enabled"], true);
-        remindInterval.Text = Math.Max(1, DataStore.GetInt(cfg?["interval_min"], 60))
-            .ToString(System.Globalization.CultureInfo.InvariantCulture);
+        reminderStepper.Value = (int)Math.Clamp(DataStore.GetInt(cfg?["interval_min"], 60), 5, 240);
 
         // 计划选择面板：专注目标 = 长期计划（固定任务）+「不分类」。默认「不分类」，由用户点选；
         // 固定任务增删/改名时重建列表（store.Changed 才触发）
@@ -114,29 +113,11 @@ public partial class TimerTab : UserControl
         _store.Save();
     }
 
-    private void Interval_PreviewTextInput(object sender, TextCompositionEventArgs e)
-    {
-        foreach (char c in e.Text)
-            if (!char.IsDigit(c))
-            {
-                e.Handled = true;
-                return;
-            }
-    }
-
-    private void Interval_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter) Keyboard.ClearFocus();   // 触发 LostFocus → 提交
-    }
-
-    private void Interval_LostFocus(object sender, RoutedEventArgs e)
+    private void ReminderStepper_Changed(int value)
     {
         if (_loading) return;
-        if (!int.TryParse(remindInterval.Text, out int v)) v = 60;
-        v = Math.Clamp(v, 10, 240);
-        remindInterval.Text = v.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var cfg = DataStore.GetObj(_store.Data, "focus_reminder")!;
-        cfg["interval_min"] = (long)v;
+        cfg["interval_min"] = (long)Math.Clamp(value, 5, 240);
         _store.Save();
     }
 

@@ -13,7 +13,7 @@
                 CornerRadius="12" Padding="10,3,10,3" Margin="0,0,0,4"
                 Effect="{StaticResource CardShadowEffect}">
             <TextBlock x:Name="statusText" FontSize="12" Style="{StaticResource MetadataText}"
-                       Foreground="{StaticResource TextSecondaryBrush}" Text="📋 0/0　·　🎯 未专注" />
+                       Foreground="{StaticResource TextSecondaryBrush}" Text="0/0 · 未专注" />
         </Border>
 
         <!-- 宠物动画（.ani 帧序列），拖拽 + 右键菜单 -->
@@ -25,14 +25,14 @@
                 <ContextMenu>
                     <MenuItem Header="回到主窗口" Click="MenuRestore_Click" />
                     <MenuItem Header="设置…" Click="MenuSettings_Click" />
-                    <MenuItem Header="打开聊天记录 💬" Click="MenuChat_Click" />
+                    <MenuItem Header="打开聊天记录" Click="MenuChat_Click" />
                     <Separator />
                     <MenuItem x:Name="menuCaption" Header="启用字幕" IsCheckable="True" Click="MenuCaption_Click" />
                     <MenuItem Header="字幕设置…" Click="MenuCaptionSettings_Click" />
                     <Separator />
-                    <MenuItem x:Name="menuVoice" Header="语音输入 🎤（敬请期待）" Click="MenuVoice_Click" />
+                    <MenuItem x:Name="menuVoice" Header="语音输入（敬请期待）" IsEnabled="False" Click="MenuVoice_Click" />
                     <Separator />
-                    <MenuItem x:Name="menuTts" Header="语音播报 🔊" IsCheckable="True" Click="MenuTts_Click" />
+                    <MenuItem x:Name="menuTts" Header="语音播报" IsCheckable="True" Click="MenuTts_Click" />
                     <MenuItem Header="语音播报设置…" Click="MenuTtsSettings_Click" />
                     <Separator />
                     <MenuItem x:Name="menuAutostart" Header="开机自启" IsCheckable="True" Click="MenuAutostart_Click" />
@@ -66,7 +66,8 @@
                 </Grid>
                 <Button x:Name="sendBtn" Grid.Column="1" Content="➤" Width="28" Height="28" Margin="4,0,0,0"
                         Style="{StaticResource PrimaryButtonStyle}" Click="Send_Click" ToolTip="发送" />
-                <Button x:Name="micBtn" Grid.Column="2" Content="🎤" Width="28" Height="28" Margin="4,0,0,0"
+                <Button x:Name="micBtn" Grid.Column="2" Content="&#xE720;" FontFamily="{StaticResource IconFont}"
+                        Width="28" Height="28" Margin="4,0,0,0"
                         Style="{StaticResource SecondaryButtonStyle}" Visibility="Collapsed" ToolTip="按住说话（后续版本）" />
             </Grid>
         </Border>

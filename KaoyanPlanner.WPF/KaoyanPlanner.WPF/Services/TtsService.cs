@@ -208,6 +208,15 @@ public sealed class TtsService : IDisposable
         _ = Task.Run(() => SynthesizeAsync(text));
     }
 
+    /// <summary>试听：忽略开关状态强制合成一次（设置页「试听」用），关闭时返回。</summary>
+    public void Preview(string text)
+    {
+        text = (text ?? "").Trim();
+        if (text.Length == 0) return;
+        if (text.Length > MaxText) text = text[..MaxText];
+        _ = Task.Run(() => SynthesizeAsync(text));
+    }
+
     private async Task SynthesizeAsync(string text)
     {
         CancellationToken ct = _synthCts.Token;

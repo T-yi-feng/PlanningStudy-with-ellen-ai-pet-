@@ -7,12 +7,7 @@
              mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="860">
 
     <UserControl.Resources>
-        <!-- 未完成提醒的间隔输入：数字专用 + 聚焦提示 -->
-        <Style x:Key="IntervalInputStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-            <Setter Property="Width" Value="52" />
-            <Setter Property="HorizontalAlignment" Value="Left" />
-            <Setter Property="ToolTip" Value="检查间隔（分钟）" />
-        </Style>
+        <!-- （间隔输入改用 NumberStepper 步进器，见页脚配置行） -->
     </UserControl.Resources>
 
     <Grid>
@@ -30,7 +25,10 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <controls:TimeBox x:Name="timeBox" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="时间" Style="{StaticResource MutedText}" Margin="0,0,6,0" VerticalAlignment="Center" />
+                <controls:TimeBox x:Name="timeBox" VerticalAlignment="Center" />
+            </StackPanel>
             <TextBox x:Name="labelInput" Grid.Column="1" Margin="8,0,8,0" MaxLength="40"
                      KeyDown="LabelInput_KeyDown" ToolTip="提醒内容，回车添加" />
             <Button Grid.Column="2" Content="添加" Style="{StaticResource PrimaryButtonStyle}"
@@ -60,11 +58,9 @@
                 <CheckBox x:Name="unfinishedCheck" Content="未完成任务提醒"
                           ToolTip="当天有待办未完成时，每隔设定时间在右下角弹窗" />
                 <TextBlock Text="每" Style="{StaticResource MutedText}" Margin="12,0,4,0" VerticalAlignment="Center" />
-                <TextBox x:Name="intervalInput" Style="{StaticResource IntervalInputStyle}"
-                         VerticalContentAlignment="Center"
-                         PreviewTextInput="Interval_PreviewTextInput"
-                         LostFocus="Interval_LostFocus" KeyDown="Interval_KeyDown" />
-                <TextBlock Text="分钟弹窗提醒待办" Style="{StaticResource MutedText}" Margin="4,0,0,0" VerticalAlignment="Center" />
+                <controls:NumberStepper x:Name="intervalStepper" Min="10" Max="180" Step="5"
+                                        ValueChanged="IntervalStepper_Changed" />
+                <TextBlock Text="分钟弹窗提醒待办" Style="{StaticResource MutedText}" Margin="6,0,0,0" VerticalAlignment="Center" />
             </StackPanel>
         </Border>
     </Grid>

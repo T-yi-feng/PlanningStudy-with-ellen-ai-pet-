@@ -4,7 +4,7 @@
 
     <!-- ================================================================
          控件样式：骨白 + 蓝强调（Codex 风）
-         圆角层级：控件 8 / 卡片 12 / 胶囊 999（全圆）；微元素（进度/勾选/滚动条）3~5
+         圆角层级：控件 8 / 卡片 12 / 弹层 10 / 胶囊 8（方形圆角，不用全圆）；微元素（进度/勾选/滚动条）3~5
          交互动效：悬停/按压一律走「叠层 Opacity 淡入淡出」130ms CubicEase——
          不直接动画共享画刷（避免一个控件变色污染所有同画刷控件），
          且天然支持实例级 Background 覆盖；按压再叠 0.97 缩放（90ms）。
@@ -36,6 +36,7 @@
     <Style TargetType="Button">
         <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
@@ -133,7 +134,7 @@
         <Setter Property="Background" Value="{StaticResource AccentBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Padding" Value="16,6" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -206,6 +207,7 @@
         <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Padding" Value="12,6" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -278,7 +280,7 @@
         <Setter Property="BorderBrush" Value="{StaticResource AccentBorderSoftBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="FontSize" Value="12" />
-        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Padding" Value="10,3" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -349,6 +351,7 @@
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Padding" Value="6,3" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -413,6 +416,7 @@
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Padding" Value="6,3" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -474,6 +478,7 @@
     <Style x:Key="RailButtonStyle" TargetType="ToggleButton">
         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
         <Setter Property="Background" Value="Transparent" />
+        <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
         <Setter Property="FontSize" Value="18" />
         <Setter Property="Width" Value="44" />
         <Setter Property="Height" Value="40" />
@@ -542,6 +547,7 @@
     <Style TargetType="TextBox">
         <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="Background" Value="{StaticResource InputBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
@@ -602,6 +608,7 @@
     <Style TargetType="PasswordBox">
         <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="Background" Value="{StaticResource InputBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
@@ -689,7 +696,9 @@
     <!-- ============ 复选框（14×14 圆角 5；勾选打勾轻微弹入） ============ -->
     <Style TargetType="CheckBox">
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
@@ -789,20 +798,20 @@
         </Setter>
     </Style>
 
-    <!-- ============ 胶囊（全圆角） ============ -->
+    <!-- ============ 胶囊（方形圆角 8，与全站统一；不用全圆胶囊） ============ -->
     <Style x:Key="PillStyle" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource ElevatedBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="999" />
+        <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Padding" Value="8,2" />
     </Style>
 
     <Style x:Key="PillAccentStyle" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource AccentSoftFillBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource AccentBorderSoftBrush}" />
+        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="999" />
+        <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Padding" Value="8,2" />
     </Style>
 
@@ -812,7 +821,9 @@
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
         <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Padding" Value="14,4" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -894,7 +905,9 @@
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
         <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToolTip">
@@ -914,6 +927,7 @@
     <Style TargetType="ContextMenu">
         <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
         <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="Template">
             <Setter.Value>
@@ -932,6 +946,8 @@
     <!-- 菜单项：圆角行，悬停软蓝淡入，可勾选项前面出 ✓ -->
     <Style TargetType="MenuItem">
         <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
@@ -996,6 +1012,7 @@
     <Style TargetType="ComboBox">
         <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="Height" Value="32" />
         <Setter Property="Cursor" Value="Hand" />
@@ -1068,6 +1085,7 @@
     <Style TargetType="ComboBoxItem">
         <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
         <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="Padding" Value="8,6" />
         <Setter Property="Cursor" Value="Hand" />
@@ -1091,6 +1109,85 @@
                             <Setter TargetName="hover" Property="Opacity" Value="1" />
                             <Setter Property="Foreground" Value="{StaticResource AccentStrongBrush}" />
                             <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============ DatePicker（自绘，对齐全站方角风格；Calendar 沿用系统但包 r10 柔影） ============ -->
+    <Style TargetType="DatePicker">
+        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DatePicker">
+                    <Grid>
+                        <Border x:Name="bd" Background="{StaticResource InputBrush}"
+                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                CornerRadius="8" SnapsToDevicePixels="True">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="hover" Grid.ColumnSpan="2" CornerRadius="8" IsHitTestVisible="False" Opacity="0"
+                                        BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1" />
+                                <Border x:Name="focus" Grid.ColumnSpan="2" CornerRadius="8" IsHitTestVisible="False" Opacity="0"
+                                        BorderBrush="{StaticResource AccentBrush}" BorderThickness="2" />
+                                <TextBox x:Name="PART_TextBox" Grid.Column="0"
+                                         VerticalContentAlignment="Center" Padding="8,0" Margin="0,0,4,0"
+                                         Background="Transparent" BorderThickness="0" />
+                                <ToggleButton x:Name="PART_Button" Grid.Column="1" Focusable="False"
+                                              ClickMode="Press" Width="30" Margin="0,0,2,0"
+                                              IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <ToggleButton.Template>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border x:Name="iconBd" CornerRadius="6" Background="Transparent">
+                                                <TextBlock Text="&#xE787;" FontFamily="{StaticResource IconFont}" FontSize="13"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="iconBd" Property="Background" Value="{StaticResource HoverFillBrush}" />
+                                                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                                </Trigger>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
+                                </ToggleButton>
+                            </Grid>
+                        </Border>
+                        <Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Bottom"
+                               StaysOpen="False" IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                            <Border Background="{StaticResource ElevatedBrush}" BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1" CornerRadius="10" Margin="0,4,0,0"
+                                    Effect="{StaticResource PopupShadowEffect}" Padding="8">
+                                <Calendar x:Name="PART_Calendar" FontFamily="{StaticResource UIFont}"
+                                          FontSize="12" />
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard><DoubleAnimation Storyboard.TargetName="focus" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12" /></Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard><DoubleAnimation Storyboard.TargetName="focus" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.1" /></Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

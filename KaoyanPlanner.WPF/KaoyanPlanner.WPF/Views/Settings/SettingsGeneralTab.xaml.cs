@@ -26,15 +26,27 @@ public partial class SettingsGeneralTab : UserControl, ISettingsSection
         topmostCheck.IsChecked = DataStore.GetBool(_store.Data["window_topmost"], true);
         autostartCheck.IsChecked = AutostartService.IsEnabled();
         reduceMotionCheck.IsChecked = DataStore.GetBool(_store.Data["reduce_motion"]);
+        codexFontCheck.IsChecked = DataStore.GetBool(DataStore.GetObj(_store.Data, "ui")?["codex_font"], true);
 
         examPicker.SelectedDateChanged += Exam_Changed;
         topmostCheck.Click += Topmost_Click;
         autostartCheck.Click += Autostart_Click;
         reduceMotionCheck.Click += ReduceMotion_Click;
+        codexFontCheck.Click += CodexFont_Click;
         _loading = false;
     }
 
     public void Refresh() { }
+
+    private void CodexFont_Click(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        bool on = codexFontCheck.IsChecked == true;
+        var ui = DataStore.GetOrCreateObj(_store.Data, "ui");
+        ui["codex_font"] = on;
+        _store.SaveQuiet();
+        App.ApplyUiStyle(on);
+    }
 
     private void Exam_Changed(object? sender, SelectionChangedEventArgs e)
     {

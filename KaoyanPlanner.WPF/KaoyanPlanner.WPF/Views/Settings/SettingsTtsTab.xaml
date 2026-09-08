@@ -8,26 +8,55 @@
             <TextBlock Style="{StaticResource MutedText}" Margin="0,4,0,16"
                        Text="{x:Static b:Brand.TtsDesc}" TextWrapping="Wrap" />
 
-            <TextBlock Text="服务启动命令（可空 = 手动启动服务）" Style="{StaticResource MetadataText}" Margin="0,0,0,4" />
+            <!-- 服务状态：绿点在线 / 红点离线 -->
+            <Border Style="{StaticResource CardStyle}" Padding="14,10">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse x:Name="statusDot" Width="10" Height="10" Margin="0,0,8,0"
+                             Fill="{StaticResource DangerBrush}" />
+                    <TextBlock x:Name="statusLbl" Style="{StaticResource BodyText}"
+                               Text="语音服务未连接（9880）" />
+                    <Button x:Name="testBtn" Content="测试连接" Style="{StaticResource SecondaryButtonStyle}"
+                            Margin="14,0,0,0" Padding="10,4" Click="Test_Click" />
+                    <Button x:Name="previewBtn" Content="试听" Style="{StaticResource SecondaryButtonStyle}"
+                            Margin="8,0,0,0" Padding="10,4" Click="Preview_Click"
+                            ToolTip="用当前音色合成并播报一句" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="服务启动命令（留空 = 手动启动服务）" Style="{StaticResource MetadataText}" Margin="0,14,0,4" />
             <TextBox x:Name="cmdBox"
                      ToolTip="例：cmd /c &quot;cd /d D:\gsvi &amp;&amp; D:\gsvi\Scripts\python.exe api_v2.py -p 9880&quot;" />
 
             <TextBlock Text="{x:Static b:Brand.TtsRefLabel}" Style="{StaticResource MetadataText}" Margin="0,12,0,4" />
-            <TextBox x:Name="refBox" ToolTip="例：D:/gsvi/custom_refs/ref_sapi_zh.wav" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="refBox" ToolTip="例：D:/gsvi/custom_refs/ref_sapi_zh.wav" />
+                <Button Grid.Column="1" Content="浏览…" Style="{StaticResource SecondaryButtonStyle}"
+                        Margin="8,0,0,0" Padding="12,4" Click="BrowseRef_Click"
+                        ToolTip="选择参考音频（wav / mp3）" />
+            </Grid>
 
             <TextBlock Text="参考音频文字（转写，SoVITS V3 必填）" Style="{StaticResource MetadataText}" Margin="0,12,0,4" />
             <TextBox x:Name="promptBox" ToolTip="参考音频里说的话；文件名【…】后的转写可直接用" />
 
             <TextBlock Text="参考音频语言" Style="{StaticResource MetadataText}" Margin="0,12,0,4" />
-            <TextBox x:Name="langBox" Text="zh" Width="120" HorizontalAlignment="Left"
-                     ToolTip="zh / en / ja / yue…" />
+            <ComboBox x:Name="langBox" IsEditable="True" Width="160" HorizontalAlignment="Left"
+                      ToolTip="可选的 zh / en / ja / yue，也可直接输入其它语言代码">
+                <ComboBoxItem Content="zh" />
+                <ComboBoxItem Content="en" />
+                <ComboBoxItem Content="ja" />
+                <ComboBoxItem Content="yue" />
+            </ComboBox>
 
             <Border Style="{StaticResource CardStyle}" Margin="0,16,0,0" Padding="14,12">
                 <StackPanel>
                     <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap"
                                Text="命令留空 = 你手动启动服务，宠物只发文字。填了命令 = 开启语音播报时自动拉起、关闭/退出时终止（零占用）。" />
                     <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,6,0,0"
-                               Text="若报 400 且提示「端口被占用」，请关掉其它 GSVI 语音服务，再在桌宠右键里关掉重开一次语音播报。" />
+                               Text="若提示「端口被占用」，请关掉其它语音服务，再在桌宠右键里关掉重开一次语音播报。" />
                 </StackPanel>
             </Border>
         </StackPanel>

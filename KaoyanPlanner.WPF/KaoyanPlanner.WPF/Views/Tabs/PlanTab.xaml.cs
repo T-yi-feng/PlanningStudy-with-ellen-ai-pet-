@@ -61,14 +61,14 @@ public partial class PlanTab : UserControl
         bool any = false;
         if (once.Count > 0)
         {
-            AddSection("📋 今日临时任务", once.Count);
+            AddSection("今日临时任务", once.Count);
             foreach (var (t, i) in once)
                 taskStack.Children.Add(new TaskItemControl(_store, t, "once", i));
             any = true;
         }
         if (fixedList.Count > 0)
         {
-            AddSection("🎯 长期固定任务（每日打卡）", fixedList.Count);
+            AddSection("长期固定任务（每日打卡）", fixedList.Count);
             foreach (var t in fixedList)
                 taskStack.Children.Add(new TaskItemControl(_store, t, "fixed"));
             any = true;
@@ -96,7 +96,7 @@ public partial class PlanTab : UserControl
 
         bool frozen = DataStore.GetBool(_store.Data["frozen"]);
         freezeBtn.IsChecked = frozen;
-        freezeBtn.Content = frozen ? "❄ 已冻结" : "❄ 冻结任务";
+        freezeBtn.Content = frozen ? "已冻结" : "冻结任务";
 
         UpdateBanner(frozen, fixedList);
     }
@@ -164,6 +164,23 @@ public partial class PlanTab : UserControl
     }
 
     // ------------------------------------------------------------ 操作
+
+    /// <summary>命令面板：切到今日计划并聚焦输入框。</summary>
+    public void FocusNewTask()
+    {
+        inputBox.Focus();
+        inputBox.CaretIndex = inputBox.Text.Length;
+    }
+
+    /// <summary>命令面板：切换冻结状态。</summary>
+    public void ToggleFrozen()
+    {
+        freezeBtn.IsChecked = !freezeBtn.IsChecked;
+        FreezeBtn_Click(freezeBtn, new RoutedEventArgs());
+    }
+
+    /// <summary>命令面板：清理当前计划已完成项（沿用确认框）。</summary>
+    public void ClearDoneNow() => ClearDoneBtn_Click(clearDoneBtn, new RoutedEventArgs());
 
     private void FreezeBtn_Click(object sender, RoutedEventArgs e)
         => _store.SetFrozen(freezeBtn.IsChecked == true);

@@ -5,6 +5,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using KaoyanPlanner.WPF.Controls;
 using KaoyanPlanner.WPF.Services;
 using Cursors = System.Windows.Input.Cursors;
 using DragDropEffects = System.Windows.DragDropEffects;
@@ -14,8 +16,10 @@ using Forms = System.Windows.Forms;
 namespace KaoyanPlanner.WPF.Views.Settings;
 
 /// <summary>
-/// 桌宠设置：形象选择器（每个形象 = desk_pet/<名称>/ 子文件夹）+ 导入（浏览/拖拽）+ 闲话开关与间隔。
-/// 选择/导入立即生效：写 data.json 的 pet_skin（惰性键），并让活体桌宠 ReloadSkin 换装。
+/// 桌宠设置：形象选择器（每个形象 = desk_pet/<名称>/ 子文件夹）+ 导入（浏览/拖拽）+ 闲话开关与间隔
+/// + 个性化（缩放 / 不透明度 / 重置位置 / 隐藏）。
+/// 选择/导入立即生效：写 data.json 的 pet_skin（惰性键），并让活体桌宠 ReloadSkin 换装；
+/// 个性化写 pet_ui（惰性键），实时应用到桌宠窗口。
 /// </summary>
 public partial class SettingsPetTab : UserControl, ISettingsSection
 {
@@ -23,22 +27,31 @@ public partial class SettingsPetTab : UserControl, ISettingsSection
     private readonly MainWindow _host;
     private bool _loading = true;
     private string _current = "";   // 当前选中形象名（"" = 默认顶层艾莲）
+    private readonly DispatcherTimer _saveDebounce;
 
     public SettingsPetTab(DataStore store, MainWindow host)
     {
         InitializeComponent();
         _store = store;
         _host = host;
+        _saveDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+        _saveDebounce.Tick += (_, _) => { _saveDebounce.Stop(); SaveAppearance(); };
 
         _current = DataStore.GetString(_store.Data["pet_skin"]);
 
         var petIdle = DataStore.GetObj(_store.Data, "pet_idle");
         idleCheck.IsChecked = DataStore.GetBool(petIdle?["enabled"], true);
-        idleInterval.Text = DataStore.GetInt(petIdle?["interval_min"], 8).ToString();
+        idleInterval.Value = (int)Math.Clamp(DataStore.GetInt(petIdle?["interval_min"], 8), 2, 999);
+
+        var petUi = DataStore.GetObj(_store.Data, "pet_ui");
+        double scale = DataStore.GetDouble(petUi?["scale"], 100);
+        double opacity = DataStore.GetDouble(petUi?["opacity"], 100);
+        scaleSlider.Value = Math.Clamp(scale, 50, 150);
+        opacitySlider.Value = Math.Clamp(opacity, 40, 100);
+        UpdateScaleLabel();
+        UpdateOpacityLabel();
 
         idleCheck.Click += IdleCheck_Click;
-        idleInterval.KeyDown += IdleInterval_KeyDown;
-        idleInterval.LostKeyboardFocus += IdleInterval_LostFocus;
 
         RefreshSkins();
         _loading = false;
@@ -93,7 +106,7 @@ public partial class SettingsPetTab : UserControl, ISettingsSection
 
         var nameText = new TextBlock
         {
-            Text = skin.Name + (skin.IsDefault ? "（默认）" : ""),
+            Text = skin.IsDefault ? "默认" : skin.Name,
             FontSize = 13,
             FontWeight = FontWeights.SemiBold,
             Foreground = (Brush)FindResource("TextPrimaryBrush"),
@@ -235,23 +248,59 @@ public partial class SettingsPetTab : UserControl, ISettingsSection
         _store.SaveQuiet();
     }
 
-    private void IdleInterval_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter) CommitIdleInterval();
-    }
-
-    private void IdleInterval_LostFocus(object sender, RoutedEventArgs e) => CommitIdleInterval();
-
-    private void CommitIdleInterval()
+    private void IdleInterval_Changed(int value)
     {
         if (_loading) return;
-        if (int.TryParse(idleInterval.Text, out int n))
-        {
-            n = Math.Max(2, n);
-            idleInterval.Text = n.ToString();
-            var petIdle = DataStore.GetOrCreateObj(_store.Data, "pet_idle");
-            petIdle["interval_min"] = n;
-            _store.SaveQuiet();
-        }
+        var petIdle = DataStore.GetOrCreateObj(_store.Data, "pet_idle");
+        petIdle["interval_min"] = Math.Clamp(value, 2, 999);
+        _store.SaveQuiet();
+    }
+
+    // ------------------------------------------------------------ 个性化
+
+    private void UpdateScaleLabel() => scaleLbl.Text = $"{(int)scaleSlider.Value}%";
+    private void UpdateOpacityLabel() => opacityLbl.Text = $"{(int)opacitySlider.Value}%";
+
+    private void Scale_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_loading) return;
+        UpdateScaleLabel();
+        ApplyAppearance();
+        ScheduleSave();
+    }
+
+    private void Opacity_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_loading) return;
+        UpdateOpacityLabel();
+        ApplyAppearance();
+        ScheduleSave();
+    }
+
+    private void ApplyAppearance() =>
+        _host.PetWindow?.ApplyAppearance((int)scaleSlider.Value, (int)opacitySlider.Value);
+
+    private void ScheduleSave()
+    {
+        _saveDebounce.Stop();
+        _saveDebounce.Start();
+    }
+
+    private void SaveAppearance()
+    {
+        if (_loading) return;
+        var petUi = DataStore.GetOrCreateObj(_store.Data, "pet_ui");
+        petUi["scale"] = (int)scaleSlider.Value;
+        petUi["opacity"] = (int)opacitySlider.Value;
+        _store.SaveQuiet();
+    }
+
+    private void ResetPos_Click(object sender, RoutedEventArgs e) =>
+        _host.PetWindow?.PositionBottomRight();
+
+    private void HidePet_Click(object sender, RoutedEventArgs e)
+    {
+        _host.PetWindow?.HidePet();
+        ToastHost.Show(Window.GetWindow(this), "桌宠已隐藏，可从托盘图标重新唤出");
     }
 }

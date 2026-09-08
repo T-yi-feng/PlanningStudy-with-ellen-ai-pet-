@@ -83,7 +83,7 @@ public partial class StatsTab : UserControl
         gallery.SetCards(new List<Func<UIElement>>
         {
             () => BuildHistogramCard(minutes, isToday),
-            () => BuildDaySummaryCard(total, active, peakHour),
+            () => BuildDaySummaryCard(total, active, peakHour, minutes),
             () => BuildDayPlanCard(dayKey, total),
             () => BuildDailyCard(),
         });
@@ -97,19 +97,44 @@ public partial class StatsTab : UserControl
         return h;
     }
 
-    private UIElement BuildDaySummaryCard(double total, int active, int peakHour)
+    private UIElement BuildDaySummaryCard(double total, int active, int peakHour, double[] minutes)
     {
-        string text = total <= 0
-            ? "这一天还没有专注记录"
-            : $"共 {Fmt.Minutes(total)} · 分布在 {active} 个小时段 · 高峰时段 {peakHour}:00";
-        return WrapCard(new TextBlock
+        if (total <= 0)
+            return WrapCard(new TextBlock
+            {
+                Text = "这一天还没有专注记录",
+                Style = (Style)FindResource("BodyText"),
+                TextAlignment = TextAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+
+        // 最早/最晚专注时段（凌晨 2 点日界：跨 0 点时 0-2 点的时段在末尾）
+        int first = -1, last = -1;
+        for (int h = 0; h < 24; h++)
+            if (minutes[h] > 0) { if (first < 0) first = h; last = h; }
+        string range = first >= 0
+            ? $"最早专注 {first:00}:00 · 最晚专注 {last:00}:00"
+            : "";
+
+        var panel = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        panel.Children.Add(new TextBlock
         {
-            Text = text,
+            Text = $"共 {Fmt.Minutes(total)} · 分布在 {active} 个小时段 · 高峰时段 {peakHour}:00",
             Style = (Style)FindResource("BodyText"),
             TextAlignment = TextAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
         });
+        if (range.Length > 0)
+            panel.Children.Add(new TextBlock
+            {
+                Text = range,
+                Style = (Style)FindResource("MutedText"),
+                TextAlignment = TextAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 6, 0, 0),
+            });
+        return WrapCard(panel);
     }
 
     /// <summary>「各计划分布」卡：focus_plan[day] 各计划 + 未分类（总 − 已标记，钳制 ≥0），按时长降序。</summary>
@@ -214,17 +239,61 @@ public partial class StatsTab : UserControl
 
     private UIElement BuildWeekSummaryCard(double total, int span, DateTime monday)
     {
-        string text = total <= 0
-            ? "本周还没有专注记录"
-            : $"本周（{monday:MM-dd} 起）共专注 {Fmt.Minutes(total)} · 日均 {Fmt.Minutes(total / (span + 1.0))}";
-        return WrapCard(new TextBlock
+        if (total <= 0)
+            return WrapCard(new TextBlock
+            {
+                Text = "本周还没有专注记录",
+                Style = (Style)FindResource("BodyText"),
+                TextAlignment = TextAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+
+        // 有专注的天数
+        int days = 0;
+        var hist = DataStore.GetObj(_store.Data, "focus_history");
+        for (int i = 0; i <= span; i++)
         {
-            Text = text,
+            string k = monday.AddDays(i).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            bool has = false;
+            if (hist is not null && hist[k] is JsonObject hd)
+                foreach (var kv in hd)
+                    if (DataStore.GetDouble(kv.Value) > 0) { has = true; break; }
+            if (has) days++;
+        }
+
+        var panel = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        panel.Children.Add(new TextBlock
+        {
+            Text = $"本周（{monday:MM-dd} 起）共专注 {Fmt.Minutes(total)} · 日均 {Fmt.Minutes(total / (span + 1.0))}",
             Style = (Style)FindResource("BodyText"),
             TextAlignment = TextAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
         });
+        panel.Children.Add(new TextBlock
+        {
+            Text = $"{span + 1} 天里坚持专注 {days} 天" + (days > 0 ? $" · 最投入的一天约 {Fmt.Minutes(PeakDay(total, monday, span))}" : ""),
+            Style = (Style)FindResource("MutedText"),
+            TextAlignment = TextAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 6, 0, 0),
+        });
+        return WrapCard(panel);
+    }
+
+    private double PeakDay(double _fallback, DateTime monday, int span)
+    {
+        double best = 0;
+        var hist = DataStore.GetObj(_store.Data, "focus_history");
+        for (int i = 0; i <= span; i++)
+        {
+            string k = monday.AddDays(i).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            double t = 0;
+            if (hist is not null && hist[k] is JsonObject hd)
+                foreach (var kv in hd) t += DataStore.GetDouble(kv.Value);
+            if (t > best) best = t;
+        }
+        return best;
     }
 
     /// <summary>周分布卡：标题 + 堆叠比例条 + 图例行（共用 BuildPlanRow）。</summary>
@@ -372,6 +441,13 @@ public partial class StatsTab : UserControl
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center,
         };
+        // 0% 项弱化：几乎没投入的计划不让它抢视线
+        if (ratio <= 0.001)
+        {
+            pctTxt.Foreground = (Brush)FindResource("TextMutedBrush");
+            pctTxt.Opacity = 0.6;
+            nameTxt.Opacity = 0.75;
+        }
         row.Children.Add(pctTxt);
         Grid.SetColumn(pctTxt, 4);
 
@@ -414,7 +490,7 @@ public partial class StatsTab : UserControl
         var header = new Grid();
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var title = new TextBlock { Text = "📅 每天学习时间", Style = (Style)FindResource("TitleText"), FontSize = 15 };
+        var title = new TextBlock { Text = "每天学习时间", Style = (Style)FindResource("TitleText"), FontSize = 15 };
         var summary = new TextBlock
         {
             Text = $"近 10 天共 {Fmt.Minutes(total10)} · 日均 {Fmt.Minutes(total10 / 10.0)} · 连续 {streak} 天",

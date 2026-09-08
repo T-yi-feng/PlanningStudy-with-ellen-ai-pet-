@@ -64,7 +64,7 @@ public class SettingsPageSmokeTests
                 // 逐个构造（MainWindow 传 null：构造期只存字段，不用它）
                 _ = new SettingsGeneralTab(store, null!);
                 _ = new SettingsChatTab(store);
-                _ = new SettingsTtsTab(store);
+                _ = new SettingsTtsTab(store, null!);
                 _ = new SettingsCaptionTab(store, null!);
                 _ = new SettingsPetTab(store, null!);
                 _ = new SettingsAboutTab();

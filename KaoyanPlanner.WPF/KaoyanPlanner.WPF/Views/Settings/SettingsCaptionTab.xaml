@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="24,20,24,24" MaxWidth="560" HorizontalAlignment="Left">
-            <TextBlock Style="{StaticResource TitleText}" Text="🎙 实时媒体字幕" />
+            <TextBlock Style="{StaticResource TitleText}" Text="实时媒体字幕" />
             <TextBlock Style="{StaticResource MutedText}" Margin="0,4,0,16"
                        Text="识别电脑播放的声音，显示在黑板窗。改动立即生效，文本框回车/失焦提交。" TextWrapping="Wrap" />
 

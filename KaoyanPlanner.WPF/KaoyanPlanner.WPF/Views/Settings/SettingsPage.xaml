@@ -95,17 +95,17 @@
                     BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,0">
                 <StackPanel Margin="12,4,12,12">
                     <RadioButton x:Name="navGeneral" Style="{StaticResource SettingsNavItemStyle}" GroupName="sect"
-                                 Tag="general" Content="⚙ 通用" Click="Nav_Click" />
+                                 Tag="general" Content="通用" Click="Nav_Click" />
                     <RadioButton x:Name="navPet" Style="{StaticResource SettingsNavItemStyle}" GroupName="sect"
-                                 Tag="pet" Content="🐾 桌宠" Click="Nav_Click" />
+                                 Tag="pet" Content="桌宠" Click="Nav_Click" />
                     <RadioButton x:Name="navChat" Style="{StaticResource SettingsNavItemStyle}" GroupName="sect"
-                                 Tag="chat" Content="💬 AI 聊天" Click="Nav_Click" />
+                                 Tag="chat" Content="AI 聊天" Click="Nav_Click" />
                     <RadioButton x:Name="navTts" Style="{StaticResource SettingsNavItemStyle}" GroupName="sect"
-                                 Tag="tts" Content="🔊 语音播报" Click="Nav_Click" />
+                                 Tag="tts" Content="语音播报" Click="Nav_Click" />
                     <RadioButton x:Name="navCaption" Style="{StaticResource SettingsNavItemStyle}" GroupName="sect"
-                                 Tag="caption" Content="🎙 实时字幕" Click="Nav_Click" />
+                                 Tag="caption" Content="实时字幕" Click="Nav_Click" />
                     <RadioButton x:Name="navAbout" Style="{StaticResource SettingsNavItemStyle}" GroupName="sect"
-                                 Tag="about" Content="ℹ 关于" Click="Nav_Click" />
+                                 Tag="about" Content="关于" Click="Nav_Click" />
                 </StackPanel>
             </Border>
 

@@ -1,2 +1,0 @@
-C:\Users\21495\Desktop\Coding\dist-wpf\KaoyanPlanner.WPF.pdb
-C:\Users\21495\Desktop\Coding\dist-wpf\KaoyanPlanner.WPF.exe

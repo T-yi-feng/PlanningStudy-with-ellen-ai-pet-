@@ -157,6 +157,19 @@ public partial class PetWindow : Window
         Top = wa.Bottom - ActualHeight - 16;
     }
 
+    /// <summary>
+    /// 应用个性化外观（设置页 pet_ui）：缩放 50–150%、不透明度 40–100%。
+    /// 只缩放大身（petImage），窗口尺寸与拖拽逻辑不变；气泡与输入条不缩放。
+    /// </summary>
+    public void ApplyAppearance(double scalePct, double opacityPct)
+    {
+        double s = Math.Clamp(scalePct, 50, 150) / 100.0;
+        double o = Math.Clamp(opacityPct, 40, 100) / 100.0;
+        petImage.RenderTransformOrigin = new Point(0.5, 0.5);
+        petImage.RenderTransform = new ScaleTransform(s, s);
+        Opacity = o;
+    }
+
     /// <summary>气泡定位参考：状态条顶部（整个宠物窗的最上沿）。</summary>
     public double StatusBarTop() => Top + 4;
 
@@ -168,6 +181,11 @@ public partial class PetWindow : Window
         if (_positioned) return;
         _positioned = true;
         PositionBottomRight();
+        // 个性化外观：缩放/不透明度（pet_ui 惰性键）
+        var petUi = DataStore.GetObj(_store.Data, "pet_ui");
+        ApplyAppearance(
+            DataStore.GetDouble(petUi?["scale"], 100),
+            DataStore.GetDouble(petUi?["opacity"], 100));
         RestoreCaptionState();   // 恢复上次字幕状态：开启 → 开始采集识别 + 黑板贴到宠物旁
     }
 
@@ -197,6 +215,9 @@ public partial class PetWindow : Window
         RestoreCaptionState();
         Activate();
     }
+
+    /// <summary>设置页「试听」：忽略开关强制合成一句，结果走同一播放通道。</summary>
+    public void PreviewTts() => _tts.Preview("你好，我是艾莲，很高兴见到你！");
 
     public bool ChatVisible => _chatWindow?.IsVisible == true;
 

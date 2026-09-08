@@ -110,18 +110,19 @@
                        Foreground="{StaticResource WarnBrush}" />
         </Border>
 
-        <!-- 任务列表 -->
+        <!-- 任务列表（限宽居中：任务行不至于拉满整屏宽度） -->
         <ScrollViewer x:Name="listScroll" Grid.Row="1"
                       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                       Margin="0,0,6,0">
-            <StackPanel x:Name="taskStack" />
+            <StackPanel x:Name="taskStack" MaxWidth="920" HorizontalAlignment="Center" />
         </ScrollViewer>
 
         <!-- 空态 -->
         <Border x:Name="emptyCard" Grid.Row="1" Style="{StaticResource EmptyStateCardStyle}"
                 Visibility="Collapsed">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                <TextBlock Text="📋" FontSize="30" HorizontalAlignment="Center" />
+                <TextBlock Text="&#xE7C3;" FontFamily="{StaticResource IconFont}" FontSize="30"
+                           HorizontalAlignment="Center" Foreground="{StaticResource TextMutedBrush}" />
                 <TextBlock Text="今天还没有计划" FontSize="15" FontWeight="SemiBold"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            HorizontalAlignment="Center" Margin="0,10,0,2" />
@@ -147,7 +148,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <ToggleButton x:Name="freezeBtn" Style="{StaticResource SecondaryToggleStyle}" Content="❄ 冻结任务" />
+            <ToggleButton x:Name="freezeBtn" Style="{StaticResource SecondaryToggleStyle}" Content="冻结任务" />
             <Button Grid.Column="2" x:Name="clearDoneBtn" Style="{StaticResource SecondaryButtonStyle}" Content="清理已完成" />
         </Grid>
 

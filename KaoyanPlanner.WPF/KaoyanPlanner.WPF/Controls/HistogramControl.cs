@@ -45,13 +45,16 @@ public sealed class HistogramControl : FrameworkElement
         return outB;
     }
 
-    /// <summary>12 根柱的区间名标签：2-4 … 20-22、22-0、0-2（桶 b 起点 = (2+2b)%24，终点 = (4+2b)%24）。</summary>
+    /// <summary>12 根柱的区间名标签：2-4 … 20-22、22-24、0-2（桶 b 起点 = (2+2b)%24，终点 = (4+2b)%24，0 点显示为 24）。</summary>
     public static string[] TwoHourLabels()
     {
         var labels = new string[12];
         for (int b = 0; b < 12; b++)
-            labels[b] = ((2 + 2 * b) % 24).ToString(CultureInfo.InvariantCulture) + "-"
-                        + ((4 + 2 * b) % 24).ToString(CultureInfo.InvariantCulture);
+        {
+            int start = (2 + 2 * b) % 24;
+            int end = (4 + 2 * b) % 24;
+            labels[b] = start + "-" + (end == 0 ? 24 : end);
+        }
         return labels;
     }
 
@@ -96,12 +99,13 @@ public sealed class HistogramControl : FrameworkElement
             dc.DrawLine(gridPen, new Point(x, mt), new Point(x, mt + plotH));
         }
 
-        // 30/60/90 分钟横向网格线 + 左上 120分 / 左下 0 标签
+        // 30/60/90 分钟横向网格线 + 完整 Y 轴刻度标签（30分/60分/90分/120分/0）
         double[] marks = { 30, 60, 90 };
         foreach (double mm in marks)
         {
             double y = mt + plotH - mm / maxMin * plotH;
             dc.DrawLine(gridPen, new Point(ml, y), new Point(ml + plotW, y));
+            DrawText(dc, ((int)mm) + "分", textBrush, 10, 2, y - 7, dpi);
         }
         DrawText(dc, "120分", textBrush, 11, 3, mt - 2, dpi);
         DrawText(dc, "0", textBrush, 11, 3, mt + plotH - 16, dpi);

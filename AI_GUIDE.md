@@ -272,12 +272,25 @@ desk_pet/
   `Animations.xaml`。
 - **全局动效体系（Codex 风丝滑统一，改控件前必读）**：所有交互态走「叠层 Border 的 Opacity 淡入淡出」，
   **不要用 ColorAnimation 动画共享 SolidColorBrush**（一个控件变色会污染所有引用该画刷的控件）。统一刻度：
-  圆角——控件 8 / 卡片·对话框 12 / 菜单·下拉弹层 10 / 胶囊 Pill 999 / 进度·勾选等微元素 3~5；
+  圆角——控件 8 / 卡片·对话框 12 / 菜单·下拉弹层 10 / 胶囊 Pill 8（方形圆角，全圆已废弃）/ 进度·勾选等微元素 3~5；
   时长——hover 120~130ms、exit 100~110ms、press 缩放 90ms（ScaleTransform 0.96~0.97，回弹 120ms）、
   页面转场 180ms/8px；缓动一律 `CubicEase EaseOut`，图标钮回弹用 `BackEase`。
   代码建的 UI 元素入场用 `Controls/UiMotion.cs`（FadeScaleIn/FadeSlideUp/TweenColor；TweenColor 只补间**自有** SolidColorBrush，
   同样禁止动画共享画刷）。一切动画都要判 `SystemParameters.ClientAreaAnimation && !ReduceMotion` 降级（reduce_motion 设置项）。
   窗口级圆角用 `DwmInterop.ApplyRoundedCorners`，Hide（非 Close）复用的窗（如 ChatWindow）在 IsVisibleChanged 重播入场。
+- **Codex 风格字体系统（2026-09-08 起）**：`Typography.xaml` 定义 `IconFont`（MDL2 字体链，杜绝 emoji 豆腐块）与
+  `UiFontWeight`（默认 SemiBold 偏粗）。隐式 TextBlock/BodyText/MetadataText/MutedText 与 Styles.xaml 全套控件
+  Setter 都绑 `{DynamicResource UiFontWeight}`，`App.ApplyUiStyle(bool)` 改 Application 级资源即可全站即时切换字重
+  （设置-通用「外观 / Codex 风格字体（偏粗体）」写 `ui.codex_font`，默认开）。**蓝底（Accent）框内文字永远用白色**，
+  白底框内黑色——此原则不随开关变化；新增蓝底 Pill/横幅时按此处理。
+- **图标一律走 IconFont + MDL2 码点**（&#xE7C3; 等），**禁止在 XAML/CS 里用 emoji 字符**（Segoe UI 缺 glyph 渲染豆腐块）。
+  文案装饰用「·」「—」等安全符号。
+- **自绘控件速查**：`Controls/NumberStepper`（−/＋ 步进器，Min/Max/Step/ValueChanged，替代「每[N]分钟」裸输入框）；
+  `Controls/ToastHost`（全局单例右下角 Toast，带「撤销」回调，删除任务用）；`Controls/UiMotion`（代码建 UI 入场动画）；
+  DatePicker 系统控件已在 Styles.xaml 末尾整体重绘（温白底 r8、日历 Popup r10、MDL2 E787 图标、focus 蓝环）。
+  `MainWindow` 内置 **Ctrl+K 命令面板**（cmdPopup/cmdList，命令集在 `BuildCommands()`，切页/建任务/冻结/清理/桌宠）。
+  `SettingsChatTab` API Key 用 PasswordBox+「显示密钥」切换；`SettingsTtsTab` 有服务状态灯（TCP 127.0.0.1:9880 探测）+试听
+  （`TtsService.Preview`）+参考音频浏览；`SettingsPetTab` 桌宠个性化（大小/不透明度滑块，写 `pet_ui`，`PetWindow.ApplyAppearance`）。
 - **WinForms 冲突是最大坑**：`UseWindowsForms=true` 让 SDK 全局导入 System.Windows.Forms/System.Drawing，
   与 WPF 同名类型冲突（UserControl/TextBox/Application/ComboBox/Point/Brushes/Orientation/DataObject/Image…）。
   `GlobalUsings.cs` 已用 `global using X = System.Windows.X;` 统一指向 WPF 版；需要 WinForms 类型（NotifyIcon/ColorDialog/FolderBrowserDialog）时文件里 `using Forms = System.Windows.Forms;`。
@@ -339,6 +352,7 @@ dotnet publish KaoyanPlanner.WPF/KaoyanPlanner.WPF.csproj -c Release \
 
 ---
 
-*最后更新：2026-09-08 第二轮——①语音线路生命周期：Job Object 随父同死（§6.3）、合成 SemaphoreSlim 串行+CTS 取消、Kill 后 WaitForExit 消竞态；
-②全局动效体系统一（§8：叠层 Opacity 淡入淡出、圆角/时长刻度、自绘 ContextMenu/ComboBox、UiMotion.cs）；
-另含第一轮网络回退链与版本隔离。应用版本 2.0.1，测试 139 个。改大模块前建议同步更新本导读与 memory。*
+*最后更新：2026-09-08 第三轮——①Codex 风格字体系统（UiFontWeight 动态字重 + 蓝底白字原则 + 设置开关，§8）、
+②全站 emoji→IconFont MDL2（根治豆腐块）、全圆胶囊→方形圆角 8、DatePicker 自绘、API Key 密码框、TTS 设置页状态灯/试听、
+桌宠个性化滑块、NumberStepper 步进器（喝水/闲话间隔）、ToastHost 撤销删除、Ctrl+K 命令面板、统计页增强（22-24/刻度/空态）；
+③版本隔离+语音线路 Job Object（前轮）。应用版本 2.0.1，测试 139 个。改大模块前建议同步更新本导读与 memory。*

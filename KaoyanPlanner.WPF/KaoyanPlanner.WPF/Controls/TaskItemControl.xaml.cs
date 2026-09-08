@@ -67,8 +67,10 @@ public partial class TaskItemControl : UserControl
 
             ApplyPunchButton(task, completed, punchedToday, frozen);
 
-            // 冻结：固定任务禁用勾选（打卡由 ApplyPunchButton 处理；已完成保留操作，方便删除）
-            check.IsEnabled = !(frozen && !done);
+            // 固定任务：打卡由打卡按钮承担，勾选框隐藏（避免与打卡按钮两套完成控件并存）
+            check.Visibility = Visibility.Collapsed;
+            metaRow.Margin = new Thickness(8, 0, 0, 0);
+            descText.Margin = new Thickness(8, 0, 0, 0);
         }
         else
         {
@@ -254,11 +256,49 @@ public partial class TaskItemControl : UserControl
     private void Del_Click(object sender, RoutedEventArgs e)
     {
         var win = Window.GetWindow(this);
-        var r = MessageBox.Show(win, $"确定删除「{DataStore.GetString(_task["text"])}」吗？",
-            "删除任务", MessageBoxButton.YesNo, MessageBoxImage.Question);
-        if (r != MessageBoxResult.Yes) return;
-        if (_kind == "fixed" && !string.IsNullOrEmpty(_id)) _store.DeleteFixed(_id);
-        else _store.DeleteTask(_index);
+        string text = DataStore.GetString(_task["text"]);
+        string day = DataStore.TodayStr();
+        JsonNode? saved = null;
+        int savedIndex = -1;
+
+        if (_kind == "fixed" && !string.IsNullOrEmpty(_id))
+        {
+            if (_store.Data["tasks"] is JsonArray tasks)
+            {
+                for (int i = 0; i < tasks.Count; i++)
+                    if (tasks[i] == _task) { savedIndex = i; break; }
+                saved = _task.DeepClone();
+                _store.DeleteFixed(_id);
+            }
+        }
+        else if (DataStore.GetObj(_store.Data, "daily")?[day] is JsonArray arr)
+        {
+            for (int i = 0; i < arr.Count; i++)
+                if (arr[i] == _task) { savedIndex = i; break; }
+            saved = _task.DeepClone();
+            _store.DeleteTask(_index);
+        }
+
+        if (saved == null) return;
+        ToastHost.Show(win, $"已删除「{text}」", "撤销", () =>
+        {
+            if (_kind == "fixed")
+            {
+                if (_store.Data["tasks"] is JsonArray tasks)
+                {
+                    var node = saved.DeepClone();
+                    if (savedIndex >= 0 && savedIndex <= tasks.Count) tasks.Insert(savedIndex, node);
+                    else tasks.Add(node);
+                }
+            }
+            else if (DataStore.GetObj(_store.Data, "daily")?[day] is JsonArray arr)
+            {
+                var node = saved.DeepClone();
+                if (savedIndex >= 0 && savedIndex <= arr.Count) arr.Insert(savedIndex, node);
+                else arr.Add(node);
+            }
+            _store.Save();
+        });
     }
 
     // ------------------------------------------------------------ 一次性任务内联改名

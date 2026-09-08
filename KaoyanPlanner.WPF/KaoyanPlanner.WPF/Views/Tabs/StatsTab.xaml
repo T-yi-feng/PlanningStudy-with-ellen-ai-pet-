@@ -35,7 +35,8 @@
                         Width="34" Height="28" Padding="0" Click="Prev_Click" />
                 <Border Grid.Column="1" HorizontalAlignment="Center" Style="{StaticResource PillAccentStyle}"
                         Padding="14,4" VerticalAlignment="Center">
-                    <TextBlock x:Name="dayLbl" Style="{StaticResource BodyText}" FontWeight="SemiBold" />
+                    <TextBlock x:Name="dayLbl" Style="{StaticResource BodyText}" FontWeight="SemiBold"
+                               Foreground="White" />
                 </Border>
                 <Button x:Name="nextBtn" Grid.Column="2" Content="▶" Style="{StaticResource SecondaryButtonStyle}"
                         Width="34" Height="28" Padding="0" Click="Next_Click" />

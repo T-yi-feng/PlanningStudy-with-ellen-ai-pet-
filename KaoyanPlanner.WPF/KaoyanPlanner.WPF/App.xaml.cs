@@ -22,6 +22,16 @@ public partial class App : Application
     private TrayService? _tray;
     private SingleInstance? _single;
 
+    /// <summary>
+    /// 应用 Codex 风格字体（偏粗）⇄ 常规字重。改 Application 级 DynamicResource（UiFontWeight），
+    /// 全站按钮/输入/菜单/正文即时刷新；蓝底白字为固定设计原则，不随此开关变化。
+    /// </summary>
+    public static void ApplyUiStyle(bool codex)
+    {
+        var res = Application.Current.Resources;
+        res["UiFontWeight"] = codex ? FontWeights.SemiBold : FontWeights.Normal;
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -36,6 +46,10 @@ public partial class App : Application
 
         _store = new DataStore();
         _store.Load();
+
+        // 外观：从 data.json 读 Codex 字体开关（默认开），在窗口创建前应用
+        var uiCfg = DataStore.GetObj(_store.Data, "ui");
+        ApplyUiStyle(DataStore.GetBool(uiCfg?["codex_font"], true));
 
         _heartbeat = new HeartbeatService(_store);
         _focusTimer = new FocusTimerService(_store);

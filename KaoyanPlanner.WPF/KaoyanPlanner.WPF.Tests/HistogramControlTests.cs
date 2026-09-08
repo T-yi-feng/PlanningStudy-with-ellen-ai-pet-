@@ -66,7 +66,7 @@ public class HistogramControlTests
         Assert.Equal("2-4", labels[0]);
         Assert.Equal("4-6", labels[1]);
         Assert.Equal("20-22", labels[10 - 1]);   // 桶9 = 20-22
-        Assert.Equal("22-0", labels[10]);        // 22:00–24:00 → 22-0
+        Assert.Equal("22-24", labels[10]);        // 22:00–24:00 → 22-24（0 点显示为 24，语义更清晰）
         Assert.Equal("0-2", labels[11]);         // 次日 0-2 → 收在 2 点
     }
 }

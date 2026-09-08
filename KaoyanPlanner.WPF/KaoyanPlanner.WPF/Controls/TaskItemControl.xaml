@@ -58,7 +58,7 @@
             </Grid>
 
             <!-- 行1：今日标签 + 迷你进度 + 分式 -->
-            <Grid Grid.Row="1" Margin="22,0,0,0">
+            <Grid x:Name="metaRow" Grid.Row="1" Margin="22,0,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
