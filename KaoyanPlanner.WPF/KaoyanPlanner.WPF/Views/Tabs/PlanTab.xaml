@@ -22,21 +22,67 @@
                         <Border x:Name="bd" Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6" SnapsToDevicePixels="True">
-                            <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                CornerRadius="8" RenderTransformOrigin="0.5,0.5" SnapsToDevicePixels="True">
+                            <Border.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1" /></Border.RenderTransform>
+                            <Grid>
+                                <Border x:Name="hover" CornerRadius="8" IsHitTestVisible="False" Opacity="0"
+                                        Background="{StaticResource ElevatedBrush}"
+                                        BorderBrush="{StaticResource BorderStrongBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}" />
+                                <Border x:Name="checkedFill" CornerRadius="8" IsHitTestVisible="False" Opacity="0"
+                                        Background="{StaticResource AccentSoftFillBrush}"
+                                        BorderBrush="{StaticResource AccentBorderSoftBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}" />
+                                <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource ElevatedBrush}" />
-                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
-                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                    <Condition Property="IsChecked" Value="False" />
+                                </MultiTrigger.Conditions>
+                                <MultiTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard><DoubleAnimation Storyboard.TargetName="hover" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.13"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation></Storyboard>
+                                    </BeginStoryboard>
+                                </MultiTrigger.EnterActions>
+                                <MultiTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard><DoubleAnimation Storyboard.TargetName="hover" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.11" /></Storyboard>
+                                    </BeginStoryboard>
+                                </MultiTrigger.ExitActions>
+                            </MultiTrigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource PressedBrush}" />
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="bd" Storyboard.TargetProperty="RenderTransform.ScaleX" To="0.97" Duration="0:0:0.09" />
+                                            <DoubleAnimation Storyboard.TargetName="bd" Storyboard.TargetProperty="RenderTransform.ScaleY" To="0.97" Duration="0:0:0.09" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="bd" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.12"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                            <DoubleAnimation Storyboard.TargetName="bd" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.12"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter Property="Foreground" Value="{StaticResource AccentStrongBrush}" />
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentSoftFillBrush}" />
-                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource AccentBorderSoftBrush}" />
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard><DoubleAnimation Storyboard.TargetName="checkedFill" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.14"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation></Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard><DoubleAnimation Storyboard.TargetName="checkedFill" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.1" /></Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

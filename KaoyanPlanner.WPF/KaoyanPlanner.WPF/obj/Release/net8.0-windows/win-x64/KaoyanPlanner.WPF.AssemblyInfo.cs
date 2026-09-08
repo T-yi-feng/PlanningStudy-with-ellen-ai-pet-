@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PetPlanner")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("2.0.1.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("2.0.1+5943a10246a82282cd36ab7ae390cdb34ebf6173")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("2.0.1+c8e29d56123500e654548b136d45c740925b5071")]
 [assembly: System.Reflection.AssemblyProductAttribute("PetPlanner")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PetPlanner")]
 [assembly: System.Reflection.AssemblyVersionAttribute("2.0.1.0")]

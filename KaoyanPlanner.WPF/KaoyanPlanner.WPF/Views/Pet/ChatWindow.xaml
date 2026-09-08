@@ -5,7 +5,7 @@
         Width="320" SizeToContent="Height" MaxHeight="520"
         WindowStyle="None" Topmost="True" ShowInTaskbar="False"
         ResizeMode="NoResize" Background="{StaticResource SurfaceBrush}">
-    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+    <Border x:Name="rootCard" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />

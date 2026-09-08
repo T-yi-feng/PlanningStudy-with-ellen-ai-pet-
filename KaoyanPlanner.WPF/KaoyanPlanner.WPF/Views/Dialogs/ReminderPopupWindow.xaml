@@ -8,7 +8,8 @@
 
     <Border x:Name="card" Background="{StaticResource SurfaceBrush}"
             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-            CornerRadius="10" MinWidth="300" MaxWidth="380"
+            CornerRadius="12" MinWidth="300" MaxWidth="380"
+            Effect="{StaticResource PopupShadowEffect}"
             SnapsToDevicePixels="True">
         <Grid>
             <Grid.RowDefinitions>

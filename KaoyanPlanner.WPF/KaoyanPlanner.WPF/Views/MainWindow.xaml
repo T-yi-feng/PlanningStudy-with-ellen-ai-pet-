@@ -20,7 +20,7 @@
     </shell:WindowChrome.WindowChrome>
 
     <Window.Resources>
-        <!-- 自定义窗口按钮：最小化/最大化/关闭 -->
+        <!-- 自定义窗口按钮：最小化/最大化/关闭（悬停柔淡入） -->
         <Style x:Key="WindowButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -33,15 +33,28 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8">
+                            <Grid>
+                                <Border x:Name="hover" CornerRadius="8" IsHitTestVisible="False" Opacity="0"
+                                        Background="{StaticResource HoverFillBrush}" />
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource HoverFillBrush}" />
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard><DoubleAnimation Storyboard.TargetName="hover" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation></Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard><DoubleAnimation Storyboard.TargetName="hover" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.1" /></Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource PressedBrush}" />
+                                <Setter TargetName="hover" Property="Background" Value="{StaticResource PressedBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -57,13 +70,26 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8">
+                            <Grid>
+                                <Border x:Name="hover" CornerRadius="8" IsHitTestVisible="False" Opacity="0"
+                                        Background="{StaticResource DangerBrush}" />
+                                <ContentPresenter x:Name="content" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource DangerBrush}" />
-                                <Setter Property="Foreground" Value="White" />
+                                <Setter TargetName="content" Property="TextElement.Foreground" Value="White" />
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard><DoubleAnimation Storyboard.TargetName="hover" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation></Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard><DoubleAnimation Storyboard.TargetName="hover" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.1" /></Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

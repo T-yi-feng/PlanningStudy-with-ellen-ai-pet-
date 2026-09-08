@@ -10,7 +10,8 @@
         <!-- 头顶状态条：任务进度 + 专注状态，每秒刷新 -->
         <Border x:Name="statusBar" HorizontalAlignment="Center" Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                CornerRadius="10" Padding="10,3,10,3" Margin="0,0,0,4">
+                CornerRadius="12" Padding="10,3,10,3" Margin="0,0,0,4"
+                Effect="{StaticResource CardShadowEffect}">
             <TextBlock x:Name="statusText" FontSize="12" Style="{StaticResource MetadataText}"
                        Foreground="{StaticResource TextSecondaryBrush}" Text="📋 0/0　·　🎯 未专注" />
         </Border>
@@ -44,7 +45,8 @@
         <!-- 常驻圆角输入框：回车发送 / 可粘贴图片 -->
         <Border x:Name="chatBar" Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                CornerRadius="10" Padding="6,4,6,4" Margin="0,4,0,0">
+                CornerRadius="12" Padding="6,4,6,4" Margin="0,4,0,0"
+                Effect="{StaticResource CardShadowEffect}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />

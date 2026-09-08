@@ -74,7 +74,7 @@ public partial class SettingsPage : UserControl
             tab.RenderTransform = tt;
         }
         tab.Opacity = 0;
-        tt.Y = 4;
+        tt.Y = 8;
         sectionHost.Content = tab;
         (tab as ISettingsSection)?.Refresh();
 
@@ -82,9 +82,9 @@ public partial class SettingsPage : UserControl
         {
             var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
             tab.BeginAnimation(OpacityProperty,
-                new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(160)) { EasingFunction = ease });
+                new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180)) { EasingFunction = ease });
             tt.BeginAnimation(TranslateTransform.YProperty,
-                new DoubleAnimation(4, 0, TimeSpan.FromMilliseconds(160)) { EasingFunction = ease });
+                new DoubleAnimation(8, 0, TimeSpan.FromMilliseconds(180)) { EasingFunction = ease });
         }
         else
         {

@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 using KaoyanPlanner.WPF.Services;
 using KaoyanPlanner.WPF.Views.Dialogs;
@@ -230,18 +231,27 @@ public partial class TimerTab : UserControl
         dock.Children.Add(nameTxt);
 
         // 用 Border + MouseLeftButtonDown（用户输入才触发，天然防程序化重建重入）
+        var rowBg = new SolidColorBrush(sel
+            ? (Color)FindResource("AccentSoftFillColor")
+            : Colors.Transparent);
         var row = new Border
         {
-            Background = sel ? (Brush)FindResource("AccentSoftFillBrush") : Brushes.Transparent,
-            CornerRadius = new CornerRadius(6),
+            Background = rowBg,
+            CornerRadius = new CornerRadius(8),
             Margin = new Thickness(0, 1, 0, 1),
             Padding = new Thickness(6, 7, 6, 7),
             Cursor = Cursors.Hand,
             Tag = plan ?? "",
             Child = dock,
         };
-        row.MouseEnter += (_, _) => { if (!sel) row.Background = (Brush)FindResource("ElevatedBrush"); };
-        row.MouseLeave += (_, _) => { if (!sel) row.Background = Brushes.Transparent; };
+        row.MouseEnter += (_, _) =>
+        {
+            if (!sel) Controls.UiMotion.TweenColor(rowBg, (Color)FindResource("ElevatedColor"));
+        };
+        row.MouseLeave += (_, _) =>
+        {
+            if (!sel) Controls.UiMotion.TweenColor(rowBg, Colors.Transparent);
+        };
         row.MouseLeftButtonDown += PlanRow_Click;
         return row;
     }

@@ -25,6 +25,11 @@ public partial class ChatWindow : Window
         InitializeComponent();
         _pet = pet;
         DwmInterop.ApplyRoundedCorners(this);
+        // 每次呼出聊天窗都重播一次柔弹入场（该窗是隐藏而非关闭）
+        IsVisibleChanged += (_, e) =>
+        {
+            if (e.NewValue is true) Controls.UiMotion.FadeScaleIn(rootCard, fromScale: 0.98, ms: 140);
+        };
         PositionNearPet();
 
         AppendMessage("pet", Brand.PetGreeting);

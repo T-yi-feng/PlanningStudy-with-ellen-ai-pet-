@@ -9,6 +9,9 @@ __pycache__/
 *.py[cod]
 *.tmp
 
+# WPF 标记编译器的临时工程/文件（每次构建随机后缀，勿入库）
+*_wpftmp.*
+
 # 数据备份
 data.json.bak
 

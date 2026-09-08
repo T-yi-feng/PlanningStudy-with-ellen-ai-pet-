@@ -21,7 +21,7 @@
             <!-- 拖拽投放区 -->
             <Border x:Name="dropZone" Background="{StaticResource InputBrush}"
                     BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1"
-                    CornerRadius="10" Padding="20" MinHeight="96"
+                    CornerRadius="12" Padding="20" MinHeight="96"
                     AllowDrop="True" DragOver="DropZone_DragOver" Drop="DropZone_Drop">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                     <TextBlock Text="📁" FontSize="26" HorizontalAlignment="Center" />

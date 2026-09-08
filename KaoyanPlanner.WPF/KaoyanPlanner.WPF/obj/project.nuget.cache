@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "ht2Wn6qlm1Y=",
+  "dgSpecHash": "Rf0ao6GrFw4=",
   "success": true,
   "projectFilePath": "C:\\Users\\21495\\Desktop\\Coding\\kaoyan_planner\\KaoyanPlanner.WPF\\KaoyanPlanner.WPF\\KaoyanPlanner.WPF.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\21495\\.nuget\\packages\\microsoft.net.illink.tasks\\8.0.30\\microsoft.net.illink.tasks.8.0.30.nupkg.sha512",
     "C:\\Users\\21495\\.nuget\\packages\\microsoft.netcore.platforms\\3.1.0\\microsoft.netcore.platforms.3.1.0.nupkg.sha512",
     "C:\\Users\\21495\\.nuget\\packages\\microsoft.win32.registry\\4.7.0\\microsoft.win32.registry.4.7.0.nupkg.sha512",
     "C:\\Users\\21495\\.nuget\\packages\\naudio\\2.2.1\\naudio.2.2.1.nupkg.sha512",
@@ -14,7 +15,10 @@
     "C:\\Users\\21495\\.nuget\\packages\\naudio.winforms\\2.2.1\\naudio.winforms.2.2.1.nupkg.sha512",
     "C:\\Users\\21495\\.nuget\\packages\\naudio.winmm\\2.2.1\\naudio.winmm.2.2.1.nupkg.sha512",
     "C:\\Users\\21495\\.nuget\\packages\\system.security.accesscontrol\\4.7.0\\system.security.accesscontrol.4.7.0.nupkg.sha512",
-    "C:\\Users\\21495\\.nuget\\packages\\system.security.principal.windows\\4.7.0\\system.security.principal.windows.4.7.0.nupkg.sha512"
+    "C:\\Users\\21495\\.nuget\\packages\\system.security.principal.windows\\4.7.0\\system.security.principal.windows.4.7.0.nupkg.sha512",
+    "C:\\Users\\21495\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.30\\microsoft.netcore.app.runtime.win-x64.8.0.30.nupkg.sha512",
+    "C:\\Users\\21495\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.30\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.30.nupkg.sha512",
+    "C:\\Users\\21495\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.30\\microsoft.aspnetcore.app.runtime.win-x64.8.0.30.nupkg.sha512"
   ],
   "logs": []
 }

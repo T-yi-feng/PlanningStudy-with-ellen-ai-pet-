@@ -127,16 +127,16 @@ public partial class MainWindow : Window
             page.RenderTransform = tt;
         }
         page.Opacity = 0;
-        tt.Y = 4;
+        tt.Y = 8;
         mainHost.Content = page;
 
         if (SystemParameters.ClientAreaAnimation && !ReduceMotion)
         {
             var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
             page.BeginAnimation(OpacityProperty,
-                new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(160)) { EasingFunction = ease });
+                new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180)) { EasingFunction = ease });
             tt.BeginAnimation(TranslateTransform.YProperty,
-                new DoubleAnimation(4, 0, TimeSpan.FromMilliseconds(160)) { EasingFunction = ease });
+                new DoubleAnimation(8, 0, TimeSpan.FromMilliseconds(180)) { EasingFunction = ease });
         }
         else
         {

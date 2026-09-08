@@ -23,16 +23,44 @@
                     <ControlTemplate TargetType="ToggleButton">
                         <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8"
                                 SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"
-                                              Margin="{TemplateBinding Padding}" />
+                            <Grid>
+                                <Border x:Name="hover" CornerRadius="8" IsHitTestVisible="False" Opacity="0"
+                                        Background="{StaticResource HoverFillBrush}" />
+                                <Border x:Name="checkedFill" CornerRadius="8" IsHitTestVisible="False" Opacity="0"
+                                        Background="{StaticResource AccentSoftFillBrush}" />
+                                <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                  Margin="{TemplateBinding Padding}" />
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource HoverFillBrush}" />
-                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                    <Condition Property="IsChecked" Value="False" />
+                                </MultiTrigger.Conditions>
+                                <MultiTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard><DoubleAnimation Storyboard.TargetName="hover" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation></Storyboard>
+                                    </BeginStoryboard>
+                                </MultiTrigger.EnterActions>
+                                <MultiTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard><DoubleAnimation Storyboard.TargetName="hover" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.1" /></Storyboard>
+                                    </BeginStoryboard>
+                                </MultiTrigger.ExitActions>
+                            </MultiTrigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentSoftFillBrush}" />
                                 <Setter Property="Foreground" Value="{StaticResource AccentStrongBrush}" />
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard><DoubleAnimation Storyboard.TargetName="checkedFill" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.14"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation></Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard><DoubleAnimation Storyboard.TargetName="checkedFill" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.1" /></Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

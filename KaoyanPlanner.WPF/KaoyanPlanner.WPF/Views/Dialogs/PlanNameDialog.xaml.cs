@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
+using KaoyanPlanner.WPF.Controls;
+using KaoyanPlanner.WPF.Native;
 
 namespace KaoyanPlanner.WPF.Views.Dialogs;
 
@@ -13,6 +15,8 @@ public partial class PlanNameDialog : Window
     public PlanNameDialog(string title, string initial = "")
     {
         InitializeComponent();
+        DwmInterop.ApplyRoundedCorners(this);
+        UiMotion.FadeScaleIn(rootCard);
         dlgTitle.Text = title;
         nameBox.Text = initial;
         nameBox.Focus();

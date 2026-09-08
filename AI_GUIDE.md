@@ -220,6 +220,27 @@ desk_pet/
 - 数据键：`pet_skin`（**惰性**，见 §0.3）。设置页 `SelectSkin(name)`：空名→`Remove("pet_skin")`；否则写；`SaveQuiet` + `PetWindow.ReloadSkin()`。
 - csproj 已把 `desk_pet\**\*.ani` + `**\*.png` 递归分发（`%(RecursiveDir)` 保子目录，`ExcludeFromSingleFile="true"` 保实体文件）。
 
+### 6.3 语音线路生命周期（「线路占用」根因与治理，`Services/TtsService.cs` + `Native/ChildProcessJob.cs`）
+
+- **进程树形态**：`server_cmd` 经 `cmd.exe /c …` 拉起，实际是 `cmd → venv python → Anaconda python` 三代，
+  最终监听 `127.0.0.1:9880` 并占显存。正常退出走 `App.OnExit → PetWindow.ShutdownTts → TtsService.Dispose`；
+  但**任务管理器强杀 / Stop-Process / 崩溃时托管 OnExit 不执行**，旧版本会留下三代孤儿继续占端口和显存，
+  下次启动撞到自己的旧孤儿 → 气泡报「线路占用」。
+- **Job Object 随父同死（核心修复）**：`Native/ChildProcessJob.cs` 用 Win32 Job Object
+  （`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE=0x2000`）把拉起的 cmd `AssignProcessToJobObject` 进去；
+  父进程无论怎么死，OS 关闭最后一个 job 句柄时会**自动杀光作业内所有子孙**（cmd/两层 python 全陪葬），
+  端口与显存即时释放。嵌套作业（本进程已在外层 job，如被沙箱/IDE 拉起）Assign 失败时静默降级，不影响主流程。
+  ⚠ 结构体必须用 `JOBOBJECT_EXTENDED_LIMIT_INFORMATION`（x64 144 字节），`Affinity` 是 `UIntPtr`(8B)，
+  误写成 uint 会让长度变 136 → `SetInformationJobObject` 静默返回 false（已踩过）。
+- **合成串行化**：`SemaphoreSlim _synthGate` 串行 `SynthesizeAsync`（单卡 GPU 并发 /tts 会互相挤压）；
+  `_synthCts` 在 `SetEnabled(false)`/`Dispose` 时取消在途合成，`SetEnabled(true)` 换新 CTS，
+  HTTP/写文件全程传 token，`OperationCanceledException` 静默。
+- **重启竞态**：`KillProc` 用 `Kill(entireProcessTree:true)` 后 `WaitForExit(3000)`，避免旧进程没退净就重拉。
+- **CaptionService 不拉起外部进程**：VadLoop/TransLoop 都是 `while(_running && gen==_gen)` + 1s TryTake 超时，
+  Stop 置标志 + StopCapture + 投哨兵，两个后台线程 1s 内退出并 Dispose `WasapiLoopbackCapture`，关闭链健壮。
+- **重定向 stdout/stderr 必须排空**：GSVI 加载日志量大，匿名管道约 4KB 缓冲一满子进程就阻塞、永远起不来；
+  故 `BeginOutputReadLine/BeginErrorReadLine` 空回调持续读掉丢弃。
+
 ---
 
 ## §7 设置页（整页非浮窗，立即生效）
@@ -244,10 +265,19 @@ desk_pet/
 
 ## §8 主题 / 样式 / WinForms 命名冲突（改 XAML 和 cs 前必读）
 
-- **主题资源**（`Theme/`，`App.xaml` 合并）：`Colors.xaml`（骨白+蓝 #339CFF 全套 Brushes）、
+- **主题资源**（`Theme/`，`App.xaml` 合并）：`Colors.xaml`（骨白+蓝 #339CFF 全套 Brushes + PopupShadowEffect/CardShadowEffect 两档阴影）、
   `Typography.xaml`（TextBlock 系样式：BodyText/MetadataText/MutedText/TitleText/PageTitleText/BigTimerText）、
-  `Styles.xaml`（Button 系/Pill/卡/进度条/CheckBox/ScrollBar/RailButtonStyle/**CardStyle(TargetType=Border)**/**SectionHeaderStyle(TargetType=Border)**）、
+  `Styles.xaml`（Button 系/Pill/卡/进度条/CheckBox/ScrollBar/RailButtonStyle/**CardStyle(TargetType=Border)**/**SectionHeaderStyle(TargetType=Border)**，
+  以及**隐式 ContextMenu/MenuItem/Separator/ComboBox/ComboBoxItem/ToolTip**——右键菜单和下拉框已自绘，不再是系统原生样式）、
   `Animations.xaml`。
+- **全局动效体系（Codex 风丝滑统一，改控件前必读）**：所有交互态走「叠层 Border 的 Opacity 淡入淡出」，
+  **不要用 ColorAnimation 动画共享 SolidColorBrush**（一个控件变色会污染所有引用该画刷的控件）。统一刻度：
+  圆角——控件 8 / 卡片·对话框 12 / 菜单·下拉弹层 10 / 胶囊 Pill 999 / 进度·勾选等微元素 3~5；
+  时长——hover 120~130ms、exit 100~110ms、press 缩放 90ms（ScaleTransform 0.96~0.97，回弹 120ms）、
+  页面转场 180ms/8px；缓动一律 `CubicEase EaseOut`，图标钮回弹用 `BackEase`。
+  代码建的 UI 元素入场用 `Controls/UiMotion.cs`（FadeScaleIn/FadeSlideUp/TweenColor；TweenColor 只补间**自有** SolidColorBrush，
+  同样禁止动画共享画刷）。一切动画都要判 `SystemParameters.ClientAreaAnimation && !ReduceMotion` 降级（reduce_motion 设置项）。
+  窗口级圆角用 `DwmInterop.ApplyRoundedCorners`，Hide（非 Close）复用的窗（如 ChatWindow）在 IsVisibleChanged 重播入场。
 - **WinForms 冲突是最大坑**：`UseWindowsForms=true` 让 SDK 全局导入 System.Windows.Forms/System.Drawing，
   与 WPF 同名类型冲突（UserControl/TextBox/Application/ComboBox/Point/Brushes/Orientation/DataObject/Image…）。
   `GlobalUsings.cs` 已用 `global using X = System.Windows.X;` 统一指向 WPF 版；需要 WinForms 类型（NotifyIcon/ColorDialog/FolderBrowserDialog）时文件里 `using Forms = System.Windows.Forms;`。
@@ -267,7 +297,7 @@ desk_pet/
 cd KaoyanPlanner.WPF
 dotnet build KaoyanPlanner.WPF/KaoyanPlanner.WPF.csproj
 
-# 测试（当前 126 个）
+# 测试（当前 139 个）
 dotnet test KaoyanPlanner.WPF.Tests/KaoyanPlanner.WPF.Tests.csproj
 
 # 发布（-o 相对调用时 cwd 解析！必须绝对路径）
@@ -304,8 +334,11 @@ dotnet publish KaoyanPlanner.WPF/KaoyanPlanner.WPF.csproj -c Release \
 10. `_todayPunch` 只存内存绝不落盘；`DailyTasks()` 返回副本，删任务要改真实 `daily[day]` 数组。
 11. 数据文件 CRLF：手动编辑（尤其 Python）后必须还原 `\r\n`，否则字节往返测试挂。
 12. **版本隔离（2026-09-08 起）**：同一源码两版身份——个人版（默认，艾莲）⇄ 安装包测试版（`-p:PublicNeutral=true -p:TestBuild=true`，小蓝）。身份全部走 `AppInfo.cs`：单实例管道、自启注册表值、关于页、托盘名按版本区分；安装器 `KillApp` 只杀**安装目录内**的 PetPlanner 进程（绝不误杀个人版）。两版可同时运行、数据各自独立。改身份相关代码先看 AppInfo，别硬编码 `PetPlanner_SingleInstance`/`PetPlanner` 值名。
+13. **语音孤儿 / 线路占用（2026-09-08 修）**：强杀主程序后 GSVI 三代进程会成孤儿占 9880+显存 → 已用 Job Object KILL_ON_JOB_CLOSE 随父同死（见 §6.3）。排查端口：`Get-NetTCPConnection -LocalPort 9880 -State Listen` + `Get-CimInstance Win32_Process`（看 ParentProcessId/CommandLine）。
+14. **代理/沙箱 shell 的 PYTHONPATH 会污染子进程 Python**：从带 `PYTHONPATH`/conda 的终端启动本程序时，GSVI 子进程继承后可能 `ModuleNotFoundError: fastapi` 秒退；从资源管理器/开机自启（干净环境）启动则正常。冒烟拉起失败先排查启动环境，别误判成 Job Object 问题。
 
 ---
 
-*最后更新：2026-09-08（网络回退链修复：网络/超时也换模型不 throw、SocketsHttpHandler 连接池、超时 25→45s；
-版本隔离：AppInfo.cs + TEST_BUILD 开关 + 安装器按目录杀进程；应用版本 2.0.1。改大模块前建议同步更新本导读与 memory。*
+*最后更新：2026-09-08 第二轮——①语音线路生命周期：Job Object 随父同死（§6.3）、合成 SemaphoreSlim 串行+CTS 取消、Kill 后 WaitForExit 消竞态；
+②全局动效体系统一（§8：叠层 Opacity 淡入淡出、圆角/时长刻度、自绘 ContextMenu/ComboBox、UiMotion.cs）；
+另含第一轮网络回退链与版本隔离。应用版本 2.0.1，测试 139 个。改大模块前建议同步更新本导读与 memory。*

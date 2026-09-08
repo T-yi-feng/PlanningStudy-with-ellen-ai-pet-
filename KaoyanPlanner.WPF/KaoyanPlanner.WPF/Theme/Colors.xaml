@@ -109,4 +109,10 @@
     <DropShadowEffect x:Key="FocusGlowEffect" Color="{StaticResource AccentColor}"
                       BlurRadius="5" ShadowDepth="0" Opacity="0.3" />
 
+    <!-- 层级投影（Codex 风柔和 elevation）：浮窗/气泡用 Popup，内嵌卡片用 Card -->
+    <DropShadowEffect x:Key="PopupShadowEffect" Color="#1A000000"
+                      BlurRadius="22" ShadowDepth="4" Direction="270" Opacity="0.55" />
+    <DropShadowEffect x:Key="CardShadowEffect" Color="#14000000"
+                      BlurRadius="12" ShadowDepth="2" Direction="270" Opacity="0.5" />
+
 </ResourceDictionary>

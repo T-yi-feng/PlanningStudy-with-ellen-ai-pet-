@@ -1,6 +1,8 @@
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Input;
+using KaoyanPlanner.WPF.Controls;
+using KaoyanPlanner.WPF.Native;
 
 namespace KaoyanPlanner.WPF.Views.Dialogs;
 
@@ -24,6 +26,8 @@ public partial class FixedTaskDialog : Window
     public FixedTaskDialog(string text = "", string desc = "", int days = 1)
     {
         InitializeComponent();
+        DwmInterop.ApplyRoundedCorners(this);   // Win11 原生圆角 + 原生投影
+        UiMotion.FadeScaleIn(rootCard);         // 统一柔弹入场
         textBox.Text = text;
         descBox.Text = desc;
         daysBox.Text = days.ToString();

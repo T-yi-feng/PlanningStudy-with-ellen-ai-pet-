@@ -4,17 +4,19 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignHeight="64" d:DesignWidth="800">
-    <Border x:Name="rootBd" CornerRadius="8" Padding="8,6" Margin="0,0,0,4">
-        <Border.Style>
-            <Style TargetType="Border">
-                <Setter Property="Background" Value="Transparent" />
-                <Style.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True">
-                        <Setter Property="Background" Value="{StaticResource HoverFillBrush}" />
-                    </Trigger>
-                </Style.Triggers>
-            </Style>
-        </Border.Style>
+    <Border x:Name="rootBd" CornerRadius="8" Padding="8,6" Margin="0,0,0,4" Background="Transparent">
+        <Border.Triggers>
+            <EventTrigger RoutedEvent="Mouse.MouseEnter">
+                <BeginStoryboard>
+                    <Storyboard><DoubleAnimation Storyboard.TargetName="hoverFill" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation></Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+            <EventTrigger RoutedEvent="Mouse.MouseLeave">
+                <BeginStoryboard>
+                    <Storyboard><DoubleAnimation Storyboard.TargetName="hoverFill" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.1" /></Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </Border.Triggers>
         <Border.ContextMenu>
             <ContextMenu>
                 <MenuItem x:Name="ctxEdit" Header="编辑任务" Click="CtxEdit_Click" />
@@ -25,6 +27,9 @@
         </Border.ContextMenu>
 
         <Grid>
+            <Border x:Name="hoverFill" CornerRadius="8" IsHitTestVisible="False" Opacity="0"
+                    Background="{StaticResource HoverFillBrush}" />
+            <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -71,6 +76,7 @@
             <!-- 行2：固定任务简介 -->
             <TextBlock x:Name="descText" Grid.Row="2" Style="{StaticResource MutedText}"
                        Margin="22,0,0,0" TextWrapping="Wrap" />
+            </Grid>
         </Grid>
     </Border>
 </UserControl>

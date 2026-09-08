@@ -94,17 +94,26 @@ public partial class PlanSidebar : UserControl
         dock.Children.Add(countTxt);
         dock.Children.Add(nameTxt);
 
+        var rowBg = new SolidColorBrush(active
+            ? (Color)FindResource("AccentSoftFillColor")
+            : Colors.Transparent);
         var row = new Border
         {
-            Background = active ? (Brush)FindResource("AccentSoftFillBrush") : Brushes.Transparent,
-            CornerRadius = new CornerRadius(6),
+            Background = rowBg,
+            CornerRadius = new CornerRadius(8),
             Margin = new Thickness(0, 1, 0, 1),
             Padding = new Thickness(6, 7, 6, 7),
             Cursor = Cursors.Hand,
             Child = dock,
         };
-        row.MouseEnter += (_, _) => { if (!active) row.Background = (Brush)FindResource("ElevatedBrush"); };
-        row.MouseLeave += (_, _) => { if (!active) row.Background = Brushes.Transparent; };
+        row.MouseEnter += (_, _) =>
+        {
+            if (!active) Controls.UiMotion.TweenColor(rowBg, (Color)FindResource("ElevatedColor"));
+        };
+        row.MouseLeave += (_, _) =>
+        {
+            if (!active) Controls.UiMotion.TweenColor(rowBg, Colors.Transparent);
+        };
         row.MouseLeftButtonDown += (_, _) => _store.SetActivePlan(nameCopy);
 
         var ctx = new ContextMenu();

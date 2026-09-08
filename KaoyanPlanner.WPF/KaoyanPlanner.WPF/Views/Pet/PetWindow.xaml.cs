@@ -787,8 +787,12 @@ public partial class PetWindow : Window
         });
     }
 
-    /// <summary>退出时调用：终止本引擎拉起的语音服务进程（有则杀，无则不动）。</summary>
-    public void ShutdownTts() => _tts.StopServer();
+    /// <summary>退出时调用：取消在途合成、终止本引擎拉起的语音服务进程、释放作业对象与播放器。</summary>
+    public void ShutdownTts()
+    {
+        _tts.Dispose();
+        try { _ttsPlayer?.Close(); } catch { /* 未初始化/已关闭 */ }
+    }
 
     /// <summary>退出时调用：停采集、停识别线程、回收音频设备。</summary>
     public void ShutdownCaption() => _caption.Dispose();

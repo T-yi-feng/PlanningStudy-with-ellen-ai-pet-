@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("KaoyanPlanner.WPF.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5943a10246a82282cd36ab7ae390cdb34ebf6173")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c8e29d56123500e654548b136d45c740925b5071")]
 [assembly: System.Reflection.AssemblyProductAttribute("KaoyanPlanner.WPF.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("KaoyanPlanner.WPF.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

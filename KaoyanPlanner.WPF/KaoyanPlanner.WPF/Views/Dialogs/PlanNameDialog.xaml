@@ -6,7 +6,7 @@
         WindowStyle="None" ShowInTaskbar="False"
         Background="{StaticResource SurfaceBrush}"
         KeyDown="Window_KeyDown">
-    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10"
+    <Border x:Name="rootCard" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12"
             Background="{StaticResource SurfaceBrush}">
         <StackPanel Margin="18,16,18,18">
             <TextBlock x:Name="dlgTitle" Text="新建计划" Style="{StaticResource TitleText}" />
