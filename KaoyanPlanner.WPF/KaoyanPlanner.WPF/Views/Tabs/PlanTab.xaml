@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="860">
+             mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="860" Foreground="{StaticResource TextPrimaryBrush}">
     <UserControl.Resources>
         <!-- 冻结 ToggleButton：外观对齐 SecondaryButton，选中 = accent 软填充 -->
         <Style x:Key="SecondaryToggleStyle" TargetType="ToggleButton">
@@ -110,11 +110,11 @@
                        Foreground="{StaticResource WarnBrush}" />
         </Border>
 
-        <!-- 任务列表（限宽居中：任务行不至于拉满整屏宽度） -->
+        <!-- 任务列表（填充整宽，与老版一致） -->
         <ScrollViewer x:Name="listScroll" Grid.Row="1"
                       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                       Margin="0,0,6,0">
-            <StackPanel x:Name="taskStack" MaxWidth="920" HorizontalAlignment="Center" />
+            <StackPanel x:Name="taskStack" />
         </ScrollViewer>
 
         <!-- 空态 -->

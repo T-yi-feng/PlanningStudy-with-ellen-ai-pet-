@@ -25,14 +25,7 @@ public partial class SettingsChatTab : UserControl
         var chat = DataStore.GetObj(_store.Data, "pet_chat");
         enabledCheck.IsChecked = DataStore.GetBool(chat?["enabled"]);
         urlBox.Text = DataStore.GetString(chat?["base_url"]);
-        string model = DataStore.GetString(chat?["model"]);
-        if (model.Length > 0)
-        {
-            bool preset = false;
-            foreach (var item in modelBox.Items)
-                if (item is ComboBoxItem cbi && (cbi.Content?.ToString() ?? "") == model) { modelBox.SelectedItem = item; preset = true; break; }
-            if (!preset) modelBox.Text = model;
-        }
+        modelBox.Text = DataStore.GetString(chat?["model"]);
         keyBox.Password = DataStore.GetString(chat?["api_key"]);
         keyBoxPlain.Text = keyBox.Password;
 
@@ -102,7 +95,7 @@ public partial class SettingsChatTab : UserControl
         var chat = DataStore.GetOrCreateObj(_store.Data, "pet_chat");
         chat["enabled"] = enabledCheck.IsChecked == true;
         chat["base_url"] = urlBox.Text.Trim();
-        chat["model"] = (modelBox.SelectedItem is ComboBoxItem cbi ? (cbi.Content?.ToString() ?? "") : modelBox.Text).Trim();
+        chat["model"] = modelBox.Text.Trim();
         chat["api_key"] = (keyBox.Visibility == Visibility.Visible ? keyBox.Password : keyBoxPlain.Text).Trim();
         _store.SaveQuiet();
     }

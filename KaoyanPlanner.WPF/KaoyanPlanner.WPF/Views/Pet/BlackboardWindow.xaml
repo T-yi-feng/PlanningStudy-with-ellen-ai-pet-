@@ -5,7 +5,7 @@
         Title="字幕黑板" Width="400" Height="170" MinWidth="280" MinHeight="120"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False" ShowActivated="False"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize" Foreground="{StaticResource TextPrimaryBrush}">
     <!-- 黑板整体在 BlackboardCanvas.OnRender 里画：黑渐变 + 木框 + 粉笔字 + 闪烁光标 + 右下角缩放点 -->
     <local:BlackboardCanvas x:Name="board"
                             MouseMove="Board_MouseMove"

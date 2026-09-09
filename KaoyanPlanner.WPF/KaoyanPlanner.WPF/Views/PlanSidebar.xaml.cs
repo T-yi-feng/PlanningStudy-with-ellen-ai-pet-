@@ -25,7 +25,7 @@ public partial class PlanSidebar : UserControl
         InitializeComponent();
         _store = store;
 
-        newPlanBtn.Click += NewPlan_Click;
+        // ⚠ newPlanBtn 的 Click 已在 XAML 挂过（Click="NewPlan_Click"），这里不再重复挂，否则点一次弹两次窗
         _store.Changed += Refresh;
         Refresh();
     }

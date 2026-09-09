@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d">
+             mc:Ignorable="d" Foreground="{StaticResource TextPrimaryBrush}">
     <UserControl.Resources>
         <!-- 分栏导航项：左侧文字行，选中 = 浅蓝底 + 强调色文字（不是大块蓝底） -->
         <Style x:Key="SettingsNavItemStyle" TargetType="ToggleButton">

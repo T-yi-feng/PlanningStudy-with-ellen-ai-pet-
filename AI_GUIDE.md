@@ -278,12 +278,15 @@ desk_pet/
   代码建的 UI 元素入场用 `Controls/UiMotion.cs`（FadeScaleIn/FadeSlideUp/TweenColor；TweenColor 只补间**自有** SolidColorBrush，
   同样禁止动画共享画刷）。一切动画都要判 `SystemParameters.ClientAreaAnimation && !ReduceMotion` 降级（reduce_motion 设置项）。
   窗口级圆角用 `DwmInterop.ApplyRoundedCorners`，Hide（非 Close）复用的窗（如 ChatWindow）在 IsVisibleChanged 重播入场。
-- **Codex 风格字体系统（2026-09-08 起）**：`Typography.xaml` 定义 `IconFont`（MDL2 字体链，杜绝 emoji 豆腐块）与
+- **Codex 风格字体系统（2026-09-08 起）**：`Typography.xaml` 定义 `IconFont`（**单字体 `Segoe MDL2 Assets`，禁止复合字体链**——WPF 对 PUA 码点
+  E000–F8FF 不做字符级逐字形回退，回退链会在 rail/窗控/日历钮/步进器上整链渲染成空白或方块）与
   `UiFontWeight`（默认 SemiBold 偏粗）。隐式 TextBlock/BodyText/MetadataText/MutedText 与 Styles.xaml 全套控件
   Setter 都绑 `{DynamicResource UiFontWeight}`，`App.ApplyUiStyle(bool)` 改 Application 级资源即可全站即时切换字重
   （设置-通用「外观 / Codex 风格字体（偏粗体）」写 `ui.codex_font`，默认开）。**蓝底（Accent）框内文字永远用白色**，
   白底框内黑色——此原则不随开关变化；新增蓝底 Pill/横幅时按此处理。
 - **图标一律走 IconFont + MDL2 码点**（&#xE7C3; 等），**禁止在 XAML/CS 里用 emoji 字符**（Segoe UI 缺 glyph 渲染豆腐块）。
+  **注意**：`<Button Content="&#xE7C3;"/>` 这类实体字符 Content 会被隐式 TextBlock 样式（FontFamily=UIFont）覆盖，渲染空白；
+  图标必须写成 `<Button><TextBlock Text="&#xE7C3;" FontFamily="{StaticResource IconFont}" FontSize="N"/></Button>`（TextBlock 本地值优先）。
   文案装饰用「·」「—」等安全符号。
 - **自绘控件速查**：`Controls/NumberStepper`（−/＋ 步进器，Min/Max/Step/ValueChanged，替代「每[N]分钟」裸输入框）；
   `Controls/ToastHost`（全局单例右下角 Toast，带「撤销」回调，删除任务用）；`Controls/UiMotion`（代码建 UI 入场动画）；

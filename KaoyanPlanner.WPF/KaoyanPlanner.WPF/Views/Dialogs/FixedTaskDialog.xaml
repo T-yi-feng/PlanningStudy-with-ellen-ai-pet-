@@ -5,7 +5,7 @@
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         WindowStyle="None" ShowInTaskbar="False"
         Background="{StaticResource SurfaceBrush}"
-        KeyDown="Window_KeyDown">
+        KeyDown="Window_KeyDown" Foreground="{StaticResource TextPrimaryBrush}">
     <Border x:Name="rootCard" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12"
             Background="{StaticResource SurfaceBrush}">
         <StackPanel Margin="18,16,18,18">

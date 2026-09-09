@@ -11,7 +11,7 @@
         Background="{StaticResource CanvasBrush}"
         Icon="pack://application:,,,/assets/icon.png"
         WindowStartupLocation="CenterScreen"
-        StateChanged="Window_StateChanged">
+        StateChanged="Window_StateChanged" Foreground="{StaticResource TextPrimaryBrush}">
 
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="48" GlassFrameThickness="0"
@@ -135,13 +135,13 @@
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
                     <Button x:Name="minimizeBtn" Style="{StaticResource WindowButtonStyle}"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True" FontFamily="Segoe MDL2 Assets"
-                            ToolTip="最小化" Click="Minimize_Click">&#xE921;</Button>
+                            ToolTip="最小化" Click="Minimize_Click"><TextBlock Text="&#xE921;" FontFamily="{StaticResource IconFont}" FontSize="14" /></Button>
                     <Button x:Name="maximizeBtn" Style="{StaticResource WindowButtonStyle}"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True" FontFamily="Segoe MDL2 Assets"
-                            ToolTip="最大化" Click="Maximize_Click">&#xE922;</Button>
+                            ToolTip="最大化" Click="Maximize_Click"><TextBlock Text="&#xE922;" FontFamily="{StaticResource IconFont}" FontSize="14" /></Button>
                     <Button x:Name="closeBtn" Style="{StaticResource CloseButtonStyle}"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True" FontFamily="Segoe MDL2 Assets"
-                            ToolTip="关闭到托盘" Click="Close_Click">&#xE8BB;</Button>
+                            ToolTip="关闭到托盘" Click="Close_Click"><TextBlock Text="&#xE8BB;" FontFamily="{StaticResource IconFont}" FontSize="14" /></Button>
                 </StackPanel>
             </Grid>
 
@@ -170,17 +170,17 @@
                                            Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <RadioButton x:Name="railPlan" Style="{StaticResource RailButtonStyle}" GroupName="rail"
-                                         IsChecked="True" ToolTip="今日计划" Tag="plan">&#xE7C3;</RadioButton>
+                                         IsChecked="True" ToolTip="今日计划" Tag="plan"><TextBlock Text="&#xE7C3;" FontFamily="{StaticResource IconFont}" FontSize="18" /></RadioButton>
                             <RadioButton x:Name="railTimer" Style="{StaticResource RailButtonStyle}" GroupName="rail"
-                                         ToolTip="专注计时" Tag="timer">&#xE823;</RadioButton>
+                                         ToolTip="专注计时" Tag="timer"><TextBlock Text="&#xE823;" FontFamily="{StaticResource IconFont}" FontSize="18" /></RadioButton>
                             <RadioButton x:Name="railReminder" Style="{StaticResource RailButtonStyle}" GroupName="rail"
-                                         ToolTip="提醒" Tag="reminder">&#xEA8F;</RadioButton>
+                                         ToolTip="提醒" Tag="reminder"><TextBlock Text="&#xEA8F;" FontFamily="{StaticResource IconFont}" FontSize="18" /></RadioButton>
                             <RadioButton x:Name="railStats" Style="{StaticResource RailButtonStyle}" GroupName="rail"
-                                         ToolTip="专注统计" Tag="stats">&#xE9D2;</RadioButton>
+                                         ToolTip="专注统计" Tag="stats"><TextBlock Text="&#xE9D2;" FontFamily="{StaticResource IconFont}" FontSize="18" /></RadioButton>
                         </StackPanel>
                         <RadioButton x:Name="railSettings" Grid.Row="2" Style="{StaticResource RailButtonStyle}"
                                      GroupName="rail" Tag="settings" ToolTip="设置"
-                                     Click="Settings_Click">&#xE713;</RadioButton>
+                                     Click="Settings_Click"><TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFont}" FontSize="18" /></RadioButton>
                     </Grid>
                 </Border>
 

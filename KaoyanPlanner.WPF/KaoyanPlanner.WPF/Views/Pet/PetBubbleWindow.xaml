@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False" ShowActivated="False"
-        ResizeMode="NoResize" SizeToContent="WidthAndHeight">
+        ResizeMode="NoResize" SizeToContent="WidthAndHeight" Foreground="{StaticResource TextPrimaryBrush}">
     <!-- 骨白圆角卡 + 细描边 + 柔和投影：自绘圆角（镜像 pet.py PetBubble.paintEvent），随缩放一起动 -->
     <Border x:Name="card" Background="{StaticResource SurfaceBrush}"
             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"

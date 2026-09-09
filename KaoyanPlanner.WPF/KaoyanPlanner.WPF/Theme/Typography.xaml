@@ -4,20 +4,22 @@
     <!-- 字体：中文走微软雅黑，拉丁/数字走 Segoe UI（WPF 按字形回退） -->
     <FontFamily x:Key="UIFont">Segoe UI, Microsoft YaHei UI</FontFamily>
     <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
-    <!-- 图标字形（Win10+ 内置 MDL2，Win11 回退 Fluent；避免 emoji 豆腐块） -->
-    <FontFamily x:Key="IconFont">Segoe MDL2 Assets, Segoe Fluent Icons, Segoe UI Symbol</FontFamily>
+    <!-- 图标字形：单字体 Segoe MDL2 Assets（Win10/11 内置）。⚠ 不要写逗号回退链：
+         WPF 对复合 FontFamily 在 PUA 码点（E000-F8FF）不做字符级回退，回退链会渲染成 notdef 方块。 -->
+    <FontFamily x:Key="IconFont">Segoe MDL2 Assets</FontFamily>
 
     <!-- Codex 风字体开关：偏粗（Semibold）⇄ 常规（Normal），设置页「外观」可切换。
          全部交互文本（按钮/输入/菜单）经 {DynamicResource UiFontWeight} 引用，切换即全局生效。 -->
     <FontWeight x:Key="UiFontWeight">SemiBold</FontWeight>
 
-    <!-- 隐式正文样式：14px / 22px 行高（WPF 无 line-height，用 LineHeight） -->
+    <!-- 隐式正文样式：14px / 22px 行高（WPF 无 line-height，用 LineHeight）。
+         ⚠ 不设 Foreground：否则会覆盖蓝底按钮/横幅经继承下来的白色文字（隐式样式优先级高于继承值）。
+         文本默认色由各 Window/UserControl 根的 Foreground=TextPrimaryBrush 提供。 -->
     <Style TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="LineHeight" Value="22" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
     </Style>
 

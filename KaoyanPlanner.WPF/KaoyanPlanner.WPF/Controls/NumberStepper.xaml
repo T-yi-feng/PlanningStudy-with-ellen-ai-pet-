@@ -1,15 +1,17 @@
 <UserControl x:Class="KaoyanPlanner.WPF.Controls.NumberStepper"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Foreground="{StaticResource TextPrimaryBrush}">
     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
         <Button x:Name="minusBtn" Style="{StaticResource GhostIconButtonStyle}" Width="26" Height="26"
-                Padding="0" FontFamily="{StaticResource IconFont}" FontSize="11"
-                Content="&#xE738;" ToolTip="减少" Click="Minus_Click" />
+                Padding="0" ToolTip="减少" Click="Minus_Click">
+            <TextBlock Text="&#xE738;" FontFamily="{StaticResource IconFont}" FontSize="11" />
+        </Button>
         <TextBox x:Name="valBox" Width="52" VerticalContentAlignment="Center" Padding="6,3"
                  TextAlignment="Center" MaxLength="4"
                  PreviewTextInput="Val_PreviewTextInput" KeyDown="Val_KeyDown" LostFocus="Val_LostFocus" />
         <Button x:Name="plusBtn" Style="{StaticResource GhostIconButtonStyle}" Width="26" Height="26"
-                Padding="0" FontFamily="{StaticResource IconFont}" FontSize="11"
-                Content="&#xE710;" ToolTip="增加" Click="Plus_Click" />
+                Padding="0" ToolTip="增加" Click="Plus_Click">
+            <TextBlock Text="&#xE710;" FontFamily="{StaticResource IconFont}" FontSize="11" />
+        </Button>
     </StackPanel>
 </UserControl>

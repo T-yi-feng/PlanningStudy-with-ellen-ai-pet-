@@ -104,7 +104,7 @@ public partial class TaskItemControl : UserControl
         if (done)
         {
             todayTagPill.Style = (Style)FindResource("PillAccentStyle");
-            todayTagText.Foreground = (Brush)FindResource("AccentStrongBrush");
+            todayTagText.Foreground = Brushes.White;   // 实心蓝底 → 白字（Codex 原则）
         }
         else if (frozen)
         {

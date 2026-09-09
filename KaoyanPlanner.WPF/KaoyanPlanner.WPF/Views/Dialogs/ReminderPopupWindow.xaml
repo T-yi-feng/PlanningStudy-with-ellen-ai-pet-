@@ -4,7 +4,7 @@
         Title="提醒" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" ResizeMode="NoResize" SizeToContent="WidthAndHeight"
         Topmost="True"
-        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+        MouseLeftButtonDown="Window_MouseLeftButtonDown" Foreground="{StaticResource TextPrimaryBrush}">
 
     <Border x:Name="card" Background="{StaticResource SurfaceBrush}"
             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
