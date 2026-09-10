@@ -51,6 +51,14 @@ public partial class MainWindow : Window
     /// <summary>桌宠窗口引用（App 组合根接线）：设置页换皮肤/字幕设置后要实时通知它。</summary>
     public PetWindow? PetWindow { get; set; }
 
+    /// <summary>提醒消息 → 桌宠说的人话（去掉 HH:mm 前缀，只留事务内容）。</summary>
+    private static string MakePetReminderLine(string message)
+    {
+        int i = message.IndexOf(" · ", StringComparison.Ordinal);
+        string content = i >= 0 ? message[(i + 3)..] : message;
+        return $"到点啦：{content}";
+    }
+
     public MainWindow(DataStore store, HeartbeatService heartbeat, FocusTimerService? focusTimer = null)
     {
         InitializeComponent();
@@ -68,10 +76,17 @@ public partial class MainWindow : Window
         sidebarHost.Child = _planSidebar;
         mainHost.Content = _planTab;
 
-        // M5 提醒触发：定时提醒 / 未完成任务提醒 → 声音 + 右下角弹窗
-        heartbeat.ReminderDue += (title, message) => _notify.Notify(title, message);
+        // M5 提醒触发：定时提醒 / 未完成任务提醒 → 声音 + 右下角弹窗；同时让桌宠开口（语音可用时）
+        heartbeat.ReminderDue += (title, message) =>
+        {
+            _notify.Notify(title, message);
+            PetWindow?.AnnounceReminder(MakePetReminderLine(message));
+        };
         heartbeat.UnfinishedDue += (total, lines) =>
+        {
             _notify.Notify($"今日还有 {total} 项待办未完成", string.Join("\n", lines));
+            PetWindow?.AnnounceReminder($"还有 {total} 项待办没完成，记得去打卡哦");
+        };
 
         railPlan.Click += (_, _) => SelectTab("plan");
         railTimer.Click += (_, _) => SelectTab("timer");

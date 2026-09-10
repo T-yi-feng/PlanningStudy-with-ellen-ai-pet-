@@ -34,7 +34,7 @@
 
     <!-- 默认 Button：Surface 底 + 1px 边 + r8 -->
     <Style TargetType="Button">
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
@@ -545,7 +545,7 @@
 
     <!-- ============ 输入框 ============ -->
     <Style TargetType="TextBox">
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
@@ -606,7 +606,7 @@
     </Style>
 
     <Style TargetType="PasswordBox">
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
@@ -696,7 +696,7 @@
     <!-- ============ 复选框（14×14 圆角 5；勾选打勾轻微弹入） ============ -->
     <Style TargetType="CheckBox">
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Cursor" Value="Hand" />
@@ -821,7 +821,7 @@
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Padding" Value="14,4" />
@@ -905,7 +905,7 @@
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Template">
@@ -925,7 +925,7 @@
 
     <!-- ============ 右键菜单（ContextMenu / MenuItem / Separator） ============ -->
     <Style TargetType="ContextMenu">
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
@@ -945,7 +945,7 @@
 
     <!-- 菜单项：圆角行，悬停软蓝淡入，可勾选项前面出 ✓ -->
     <Style TargetType="MenuItem">
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
@@ -1010,7 +1010,7 @@
 
     <!-- ============ ComboBox（不可编辑下拉） ============ -->
     <Style TargetType="ComboBox">
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
@@ -1083,7 +1083,7 @@
     </Style>
 
     <Style TargetType="ComboBoxItem">
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
@@ -1118,7 +1118,7 @@
 
     <!-- ============ DatePicker（自绘，对齐全站方角风格；Calendar 沿用系统但包 r10 柔影） ============ -->
     <Style TargetType="DatePicker">
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
@@ -1171,7 +1171,7 @@
                             <Border Background="{StaticResource ElevatedBrush}" BorderBrush="{StaticResource BorderBrush}"
                                     BorderThickness="1" CornerRadius="10" Margin="0,4,0,0"
                                     Effect="{StaticResource PopupShadowEffect}" Padding="8">
-                                <Calendar x:Name="PART_Calendar" FontFamily="{StaticResource UIFont}"
+                                <Calendar x:Name="PART_Calendar" FontFamily="{DynamicResource UIFont}"
                                           FontSize="12" />
                             </Border>
                         </Popup>

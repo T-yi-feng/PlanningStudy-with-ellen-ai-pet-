@@ -28,6 +28,7 @@ public partial class PetWindow : Window
     private const int IdleAiBatch = 5;
     private const long AiIdleFailCooldownMs = 30L * 60 * 1000;
     private const int BubbleTimeoutMs = 10000;
+    private const int SyncTimeoutMs = 15000;   // 语音锚定：合成等待上限（GSVI 长句约 6-12s），超时字幕照出
 
     private static readonly string[] DoneReplyMarks = { "搞定", "划掉", "已勾掉", "全部完成", "完成啦", "太棒了" };
     private static readonly string[] PraiseKeys =
@@ -67,6 +68,10 @@ public partial class PetWindow : Window
     private bool _busy;
     private bool _aiIdleBusy;
     private long _aiIdleCooldownUntil;
+    // 语音锚定字幕：AI 回复字幕等语音合成完成再一起出现（语音就绪由 PlayRequested 触发）
+    private readonly Queue<(string Text, BitmapSource? Image)> _syncedBubbles = new();
+    private readonly object _syncedLock = new();
+    private bool _syncedSubscribed;
 
     public PetWindow(DataStore store, MainWindow mainWindow, FocusTimerService focusTimer)
     {
@@ -83,7 +88,11 @@ public partial class PetWindow : Window
         // 必须像 _caption.StatusChanged 一样用 Dispatcher 封回主线程。
         _tts.StatusChanged += status => Dispatcher.InvokeAsync(() =>
         {
-            if (status.StartsWith("⚠")) SpeakBubble(status);
+            if (status.StartsWith("⚠"))
+            {
+                // 合成失败/服务中断：待同步字幕立即显示（内容不丢）；没有待同步字幕才显示警告
+                if (!FlushSyncedBubbles()) SpeakBubble(status);
+            }
         });
         _tts.PlayRequested += PlayTts;
 
@@ -507,10 +516,88 @@ public partial class PetWindow : Window
     {
         SetBusy(false);
         RefreshStatus();
-        SpeakBubble(reply);
-        _tts_speak(reply);
+        SpeakBubbleSynced(reply);   // 字幕与语音同步出现（语音就绪才显示，超时/失败兜底）
         ReactToReply(reply);
         if (_chatWindow is not null && _chatWindow.IsVisible) _chatWindow.AppendMessage("pet", reply);
+    }
+
+    // ------------------------------------------------------------ 语音锚定字幕
+
+    /// <summary>
+    /// 字幕与语音同步投递：先触发合成，语音就绪（PlayRequested）时字幕与声音一起出现，
+    /// 避免「字幕出很久了语音才来」。合成超时/失败 → 字幕照出（兜底）。语音关/未就绪 → 字幕立即。
+    /// 队列 + 单订阅保证并发时字幕与语音不串位（合成串行，队列顺序即播放顺序）。
+    /// </summary>
+    private void SpeakBubbleSynced(string text, BitmapSource? image = null)
+    {
+        bool ttsOn = DataStore.GetBool(DataStore.GetObj(_store.Data, "tts")?["enabled"]);
+        bool speakable = ttsOn && _tts.Enabled
+            && !string.IsNullOrWhiteSpace(text)
+            && !text.All(c => "，。！？…、～~·,?!.:;\"'「」()（）".Contains(c));
+        if (!speakable)
+        {
+            SpeakBubble(text, image);   // 语音关/未就绪/文本无效 → 字幕立即
+            return;
+        }
+        lock (_syncedLock)
+        {
+            if (!_syncedSubscribed)
+            {
+                _tts.PlayRequested += OnSyncedPlay;
+                _syncedSubscribed = true;
+            }
+            _syncedBubbles.Enqueue((text, image));
+        }
+        SpeakBubble("💭 正在组织语音…");   // 合成等待期占位反馈（语音就绪时会被完整字幕替换）
+        _tts.Speak(text);
+        // 超时兜底：合成超时（服务慢/网络）→ 字幕照出，不等语音
+        _ = Task.Delay(SyncTimeoutMs).ContinueWith(_ => Dispatcher.InvokeAsync(() =>
+        {
+            bool show = false;
+            (string Text, BitmapSource? Image) item = default;
+            lock (_syncedLock)
+            {
+                if (_syncedBubbles.Count > 0 && _syncedBubbles.Peek().Text == text)
+                {
+                    item = _syncedBubbles.Dequeue();
+                    show = true;
+                }
+            }
+            if (show) SpeakBubble(item.Text ?? "", item.Image);
+        }));
+    }
+
+    /// <summary>语音合成完成（PlayRequested 广播）→ 出队显示对应字幕，与播放同步。</summary>
+    private void OnSyncedPlay(string _)
+    {
+        (string Text, BitmapSource? Image) item = default;
+        bool any = false;
+        lock (_syncedLock)
+        {
+            if (_syncedBubbles.Count > 0)
+            {
+                item = _syncedBubbles.Dequeue();
+                any = true;
+            }
+        }
+        if (any) Dispatcher.InvokeAsync(() => SpeakBubble(item.Text ?? "", item.Image));
+    }
+
+    /// <summary>立即显示队首待同步字幕（合成失败/服务中断时调用，内容不丢）。返回是否显示过。</summary>
+    private bool FlushSyncedBubbles()
+    {
+        (string Text, BitmapSource? Image) item = default;
+        bool any = false;
+        lock (_syncedLock)
+        {
+            if (_syncedBubbles.Count > 0)
+            {
+                item = _syncedBubbles.Dequeue();
+                any = true;
+            }
+        }
+        if (any) SpeakBubble(item.Text ?? "", item.Image);
+        return any;
     }
 
     private void SetBusy(bool busy)
@@ -552,6 +639,15 @@ public partial class PetWindow : Window
         CloseBubble();
         _bubble = new PetBubbleWindow(this, text, image, BubbleTimeoutMs, OnBubbleClosed);
         _bubble.Show();
+    }
+
+    /// <summary>提醒到点：气泡 + 语音播报（语音开关开启且服务可用时才出声）。</summary>
+    public void AnnounceReminder(string text)
+    {
+        if (!IsVisible) return;
+        SpeakBubble(text);
+        _tts_speak(text);
+        if (_animName != "sleep") SetAnim("talking", oneshot: true);   // 提醒时进入说话表情
     }
 
     private void CloseBubble()

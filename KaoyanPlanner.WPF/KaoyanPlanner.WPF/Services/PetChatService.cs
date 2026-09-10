@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Net.Http;
 using System.Text;
@@ -15,16 +16,17 @@ namespace KaoyanPlanner.WPF.Services;
 /// </summary>
 public sealed class PetChatService
 {
-    public const string DefaultBaseUrl = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
-    public const string DefaultModel = "glm-4.7";
+    public const string DefaultBaseUrl = "https://ark.cn-beijing.volces.com/api/v3/chat/completions";
+    public const string DefaultModel = "doubao-seed-2-1-turbo-260628";
 
     /// <summary>
-    /// 回退链。2026-08-31 实测：该账号可用 glm-4.7 / glm-4-flash / glm-4v-flash；
-    /// glm-4.6v-flash 已下线（持续 429「访问量过大」且不在可用模型列表）、glm-5.3-flash 等要余额。
-    /// 链里必须放能用的模型，绝不只依赖配置里的单一模型——否则配置模型一挂对话就全变本地话术。
+    /// 回退链（火山方舟协作奖励授权档）。2026-09-11 切方舟：主模型 doubao-seed-2-1-turbo
+    /// （快、多模态），兜底同代 pro；两者都需在方舟控制台「开通管理→模型授权」里点「立即授权」
+    /// （授权后每日最高可得免费 200 万 token）。链里必须放能用的模型，绝不只依赖配置里的单一模型——
+    /// 否则配置模型一挂对话就全变本地话术。
     /// </summary>
-    private static readonly string[] TxtFallbackModels = { "glm-4.7", "glm-4-flash" };
-    private static readonly string[] VisionFallbackModels = { "glm-4v-flash" };
+    private static readonly string[] TxtFallbackModels = { "doubao-seed-2-1-turbo-260628", "doubao-seed-2-1-pro-260628" };
+    private static readonly string[] VisionFallbackModels = { "doubao-seed-2-1-turbo-260628" };
 
     private readonly DataStore _store;
     private readonly Func<string>? _taskContext;
@@ -103,29 +105,49 @@ public sealed class PetChatService
 
     // ------------------------------------------------------------ 对话
 
+    // 多轮上下文：最近 6 轮（12 条）消息进请求，让 AI 记得住主人说过什么（「对话太短/不智能」的根因之一）。
+    private const int MaxHistoryMessages = 12;
+    private readonly List<(string Role, string Text)> _history = new();
+
+    private void AppendHistory(string role, string text)
+    {
+        _history.Add((role, text));
+        if (_history.Count > MaxHistoryMessages) _history.RemoveAt(0);
+    }
+
     public async Task<string> RespondAsync(string text, CancellationToken ct = default)
     {
+        AppendHistory("user", text);
         try
         {
             var messages = new JsonArray();
             messages.Add(new JsonObject { ["role"] = "system", ["content"] = SystemPrompt });
-            if (_taskContext is not null && HasTaskTopic(text))
-            {
-                string ctx = _taskContext();
-                if (ctx.Length > 0)
-                    messages.Add(new JsonObject { ["role"] = "user", ["content"] = "【当前任务状态】\n" + ctx });
-            }
-            messages.Add(new JsonObject { ["role"] = "user", ["content"] = text });
-            return await SendAsync(messages, isVision: false, ct: ct);
+            // 状态注入 + 话题条件：只有主人主动聊计划/提醒/日程/学习时才参考；
+            // 纯闲聊时让 AI 忘记状态，以艾莲人设轻松聊天，不主动把话题拉回计划。
+            string state = StateContext();
+            if (state.Length > 0)
+                messages.Add(new JsonObject { ["role"] = "user", ["content"] =
+                    "【当前状态】\n" + state +
+                    "\n（仅当主人这句话涉及计划、提醒、日程或学习安排时才参考以上状态；" +
+                    "主人纯闲聊时请忘记这些状态，以艾莲人设轻松聊天，不要主动提起任何计划、提醒或学习内容，也别把话题绕回计划。）" });
+            // 历史：不包含刚追加的最后一条 user（它作为本轮提问放最后）
+            foreach (var (role, t) in _history.Take(_history.Count - 1))
+                messages.Add(new JsonObject { ["role"] = role, ["content"] = t });
+            string reply = await SendAsync(messages, isVision: false, ct: ct);
+            AppendHistory("assistant", reply);
+            return reply;
         }
         catch
         {
-            return LocalReply(text);
+            string reply = LocalReply(text);
+            AppendHistory("assistant", reply);
+            return reply;
         }
     }
 
     public async Task<string> RespondVisionAsync(string text, string imageB64, CancellationToken ct = default)
     {
+        AppendHistory("user", text.Length > 0 ? text : "（发来一张图片）");
         try
         {
             var content = new JsonArray();
@@ -133,12 +155,18 @@ public sealed class PetChatService
             content.Add(new JsonObject { ["type"] = "image_url", ["image_url"] = new JsonObject { ["url"] = "data:image/png;base64," + imageB64 } });
             var messages = new JsonArray();
             messages.Add(new JsonObject { ["role"] = "system", ["content"] = SystemPrompt });
-            messages.Add(new JsonObject { ["role"] = "user", ["content"] = content });
-            return await SendAsync(messages, isVision: true, ct: ct);
+            // 视觉请求也带上最近文本历史（图片本身不重放），保持对话连贯
+            foreach (var (role, t) in _history.Take(_history.Count - 1))
+                messages.Add(new JsonObject { ["role"] = role, ["content"] = t });
+            string reply = await SendAsync(messages, isVision: true, ct: ct);
+            AppendHistory("assistant", reply);
+            return reply;
         }
         catch
         {
-            return LocalReply(text);
+            string reply = LocalReply(text);
+            AppendHistory("assistant", reply);
+            return reply;
         }
     }
 
@@ -214,8 +242,10 @@ public sealed class PetChatService
             {
                 ["model"] = model,
                 ["messages"] = messages,
-                ["max_tokens"] = 300,
+                ["max_tokens"] = 600,
                 ["temperature"] = temperature,
+                // 火山方舟：关闭深度思考，聊天更跟手（桌宠要快，不需要长推理）
+                ["thinking"] = new JsonObject { ["type"] = "disabled" },
             };
             using var req = new HttpRequestMessage(HttpMethod.Post, baseUrl);
             req.Headers.TryAddWithoutValidation("Authorization", "Bearer " + key);
@@ -275,12 +305,49 @@ public sealed class PetChatService
 
     // ------------------------------------------------------------ 任务上下文
 
-    private static readonly string[] TaskTopicHints = { "任务", "计划", "长期", "固定", "欠卡", "补卡", "打卡", "进度", "冻结", "解冻", "复习" };
-
-    private static bool HasTaskTopic(string text)
+    /// <summary>给 AI 的当前状态：任务进度 + 提醒概览（今天起 3 天内 + 每日提醒）。</summary>
+    public string StateContext()
     {
-        foreach (string h in TaskTopicHints) if (text.Contains(h, StringComparison.Ordinal)) return true;
-        return false;
+        var parts = new List<string>();
+        string tasks = TaskContext();
+        if (tasks.Length > 0) parts.Add(tasks);
+        string reminders = ReminderContext(DateTime.Now);
+        if (reminders.Length > 0) parts.Add(reminders);
+        return parts.Count > 0 ? string.Join("\n", parts) : "";
+    }
+
+    /// <summary>提醒概览：每日型（旧版 time 键）+ 今天起 3 天内的日期型，附紧急程度。</summary>
+    private string ReminderContext(DateTime now)
+    {
+        var data = _store.Data;
+        if (data["reminders"] is not JsonArray arr || arr.Count == 0) return "";
+        var lines = new List<string>();
+        var horizon = new HashSet<string>();
+        for (int i = 0; i <= 3; i++)
+            horizon.Add(now.AddDays(i).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        foreach (var n in arr)
+        {
+            if (n is not JsonObject r || !DataStore.GetBool(r["enabled"], true)) continue;
+            string label = ReminderService.LabelOf(r);
+            string priTxt = ReminderService.PriorityOf(r) switch { 2 => "（紧急）", 1 => "（重要）", _ => "" };
+            if (ReminderService.IsLegacy(r))
+            {
+                string time = DataStore.GetString(r["time"]);
+                if (ReminderService.TryParseHm(time, out _, out _))
+                    lines.Add($"每日 {time} {label}{priTxt}");
+            }
+            else
+            {
+                string date = DataStore.GetString(r["date"]);
+                if (!horizon.Contains(date)) continue;
+                long interval = DataStore.GetInt(r["interval_min"], 0);
+                string range = interval > 0
+                    ? $"{DataStore.GetString(r["start"])}~{DataStore.GetString(r["end"])}（每{interval}分钟）"
+                    : DataStore.GetString(r["start"]);
+                lines.Add($"{date} {range} {label}{priTxt}");
+            }
+        }
+        return lines.Count > 0 ? "提醒：" + string.Join(" · ", lines) : "";
     }
 
     /// <summary>把当前固定任务状态拼成一段文字，作为 AI 对话前缀上下文（镜像 chat.py task_context）。</summary>

@@ -11,7 +11,7 @@ namespace KaoyanPlanner.WPF;
 internal static class AppInfo
 {
     /// <summary>应用版本号（关于页 / 文件属性展示；改动版本时改这里）。</summary>
-    public const string Version = "2.0.1";
+    public const string Version = "2.2.7";
 
 #if TEST_BUILD
     /// <summary>版本名：随安装包分发的测试版（公共中性版）。</summary>

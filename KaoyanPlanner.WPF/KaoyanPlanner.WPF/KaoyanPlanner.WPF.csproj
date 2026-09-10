@@ -10,7 +10,7 @@
     <AssemblyName>PetPlanner</AssemblyName>
     <RootNamespace>KaoyanPlanner.WPF</RootNamespace>
     <!-- 应用版本：关于页与 Windows 文件属性展示（AppInfo.Version 与此保持一致） -->
-    <Version>2.0.1</Version>
+    <Version>2.2.7</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>..\..\icon.ico</ApplicationIcon>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>

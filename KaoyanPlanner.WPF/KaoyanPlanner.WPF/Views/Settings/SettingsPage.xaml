@@ -9,7 +9,7 @@
         <Style x:Key="SettingsNavItemStyle" TargetType="ToggleButton">
             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+            <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
             <Setter Property="FontSize" Value="14" />
             <Setter Property="Height" Value="38" />
             <Setter Property="Margin" Value="0,2,0,2" />

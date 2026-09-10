@@ -41,6 +41,13 @@ public sealed class PetCommandService
     private static readonly string[] PunchKeys = { "打卡", "补卡" };
     private static readonly string[] AddFixedKeys = { "长期任务", "长期计划", "固定任务", "固定计划" };
 
+    // 提醒（自然语言解析，见 ReminderTextParser）：列表优先于添加（「查看提醒」含「提醒」子串）
+    private static readonly string[] ReminderListKeys =
+        { "列出提醒", "查看提醒", "看看提醒", "提醒列表", "提醒清单", "有什么提醒", "有哪些提醒", "我的提醒" };
+    private static readonly string[] ReminderKeys =
+        { "提醒我一下", "提醒我", "提醒一下", "提醒", "设个提醒", "设提醒", "设置提醒", "添加提醒",
+          "加个提醒", "加提醒", "帮我提醒", "帮我设个", "帮我定个", "定个提醒", "定提醒", "闹钟" };
+
     private static readonly string[] GenericWords =
         { "计划", "今日计划", "任务", "日程", "列表", "清单", "今天", "里", "现在", "一下", "点" };
 
@@ -168,6 +175,17 @@ public sealed class PetCommandService
         if (AnyIn(t, FocusEndKeys)) return (true, ResetFocus());
 
         if (AnyIn(t, DebtKeys)) return (true, DebtReport());
+
+        // 提醒：先「列出」，再「添加」（自然语言：今天/几月几号/几点/间隔/紧急程度）
+        if (AnyIn(t, ReminderListKeys)) return (true, ListReminders());
+
+        if (AnyIn(t, ReminderKeys))
+        {
+            var parsed = ReminderTextParser.Parse(t, DateTime.Now);
+            if (parsed is null)
+                return (true, "想提醒你什么？说「提醒我 明天下午3点 喝水」这样～");
+            return (true, AddReminder(parsed));
+        }
 
         if (AnyIn(t, PunchKeys) && !AnyIn(t, new[] { "？", "?", "吗" }))
         {
@@ -397,6 +415,89 @@ public sealed class PetCommandService
         return string.Join("\n", lines);
     }
 
+    // ------------------------------------------------------------ 提醒（自然语言添加 / 列出）
+
+    /// <summary>
+    /// 把解析结果落盘为提醒（date/start/end/interval_min/label/priority/enabled）。
+    /// 未指定时间 → 现在 +1 分钟开始，持续 1 小时仅一次；今天已过的时间自动顺延明天并告知。
+    /// </summary>
+    public string AddReminder(ReminderTextParser.Result r, DateTime? now = null)
+    {
+        now ??= DateTime.Now;
+        DateTime date = r.Date;
+        int startMin = r.StartMinute ?? (now.Value.AddMinutes(1).Hour * 60 + now.Value.AddMinutes(1).Minute);
+        int endMin = r.EndMinute ?? Math.Min(1439, startMin + 60);
+        long interval = Math.Max(0, r.IntervalMin);
+
+        // 今天、且用户显式给的时间已过 → 顺延明天（不静默，回复里说明）
+        bool rolled = r.StartMinute is not null && date == now.Value.Date && startMin <= now.Value.Hour * 60 + now.Value.Minute;
+        if (rolled) date = date.AddDays(1);
+
+        string start = $"{startMin / 60:00}:{startMin % 60:00}";
+        string end = $"{endMin / 60:00}:{endMin % 60:00}";
+
+        var reminders = GetReminders();
+        reminders.Add(new JsonObject
+        {
+            ["date"] = date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+            ["start"] = start,
+            ["end"] = end,
+            ["interval_min"] = interval,
+            ["label"] = r.Label,
+            ["priority"] = (long)r.Priority,
+            ["enabled"] = true,
+        });
+        _store.Save();
+
+        string when = date == now.Value.Date ? "今天" : date == now.Value.Date.AddDays(1) ? "明天" : $"{date.Month}月{date.Day}日";
+        string timePart = interval > 0 ? $"{start} 到 {end}（每 {interval} 分钟一次）" : start;
+        string priTxt = r.Priority == 2 ? "，紧急" : r.Priority == 1 ? "，重要" : "";
+        string rolledNote = rolled ? $"\n（你定的今天 {start} 已经过了，我改到明天了）" : "";
+        return $"好，已设提醒：{when} {timePart}「{r.Label}」{priTxt} ✅ 现在共 {reminders.Count} 条提醒。{rolledNote}";
+    }
+
+    public string ListReminders()
+    {
+        var reminders = GetReminders();
+        if (reminders.Count == 0)
+            return "还没有提醒。说「提醒我 明天下午3点 喝水」就能加一条～";
+        var lines = new List<string> { $"当前共 {reminders.Count} 条提醒：" };
+        foreach (var n in reminders)
+        {
+            if (n is not JsonObject r) continue;
+            string label = ReminderService.LabelOf(r);
+            string priTxt = ReminderService.PriorityOf(r) switch { 2 => "（紧急）", 1 => "（重要）", _ => "" };
+            string when;
+            if (ReminderService.IsLegacy(r))
+            {
+                when = "每天 " + DataStore.GetString(r["time"]);
+            }
+            else
+            {
+                string d = DataStore.GetString(r["date"]);
+                long interval = DataStore.GetInt(r["interval_min"], 0);
+                string dayCn = d;
+                if (DateTime.TryParseExact(d, "yyyy-MM-dd",
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.None, out DateTime dt))
+                    dayCn = dt == DateTime.Today ? "今天" : dt == DateTime.Today.AddDays(1) ? "明天" : $"{dt.Month}月{dt.Day}日";
+                when = interval > 0
+                    ? $"{dayCn} {DataStore.GetString(r["start"])}~{DataStore.GetString(r["end"])}（每{interval}分钟）"
+                    : $"{dayCn} {DataStore.GetString(r["start"])}";
+            }
+            lines.Add($"· {when} {label}{priTxt}");
+        }
+        return string.Join("\n", lines);
+    }
+
+    private JsonArray GetReminders()
+    {
+        if (_store.Data["reminders"] is JsonArray a) return a;
+        var created = new JsonArray();
+        _store.Data["reminders"] = created;
+        return created;
+    }
+
     // ------------------------------------------------------------ 专注计时控制
 
     public string StartFocus()
@@ -432,7 +533,7 @@ public sealed class PetCommandService
     // ------------------------------------------------------------ 辅助
 
     public static string HelpText() =>
-        "我可以帮你管计划哦～试试：\n" +
+        "我可以帮你管计划和提醒哦～试试：\n" +
         "· 添加 背单词\n" +
         "· 添加长期任务 背单词 30天 简介：每天50个\n" +
         "· 打卡 背单词\n" +
@@ -442,6 +543,9 @@ public sealed class PetCommandService
         "· 长期任务进度\n" +
         "· 冻结任务 / 解冻任务\n" +
         "· 全部完成\n" +
+        "· 提醒我 明天下午3点 喝水\n" +
+        "· 提醒我 9月12号 晚上8点 背单词 每30分钟 重要\n" +
+        "· 列出提醒\n" +
         "也可以随便跟我聊天～";
 
     private string Ambiguous(string name, List<JsonObject> matched)

@@ -48,6 +48,7 @@ public sealed class HeartbeatService
         _lastDay = DataStore.TodayStr();
         _store.EnsureToday();
         _store.RolloverFixed();
+        PruneExpiredReminders();   // 启动时清理停机期间过期的提醒
         UpdateUnfinishedTimer();
         _timer.Start();
         _firstUnfinishedCheck.Start();
@@ -73,20 +74,34 @@ public sealed class HeartbeatService
             _store.RolloverFixed();   // 欠卡结算（有变化才落盘）
             _store.EnsureToday();     // 归档最近一天 + 建今日空列表
             _firedTimes.Clear();      // 跨日重置去重记录
+            PruneExpiredReminders();  // 昨天的提醒已过 → 删除释放空间
             DayChanged?.Invoke();
         }
         CheckReminders();
         Tick?.Invoke();
     }
 
+    /// <summary>清理日期已过的提醒（每日型保留）。有删除才落盘。</summary>
+    private void PruneExpiredReminders()
+    {
+        if (_store.Data["reminders"] is not JsonArray arr) return;
+        var expired = ReminderService.Expired(arr, DateTime.Today);
+        if (expired.Count == 0) return;
+        foreach (var r in expired) arr.Remove(r);
+        _store.Save();
+    }
+
     private void CheckReminders()
     {
-        string now = DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture);
-        if (!_firedTimes.Add(_lastDay + "|" + now)) return;   // 同一分钟只处理一次
+        var now = DateTime.Now;
+        string nowHm = now.ToString("HH:mm", CultureInfo.InvariantCulture);
+        if (!_firedTimes.Add(_lastDay + "|" + nowHm)) return;   // 同一分钟只处理一次
         foreach (var r in ReminderService.MatchingAt(_store.Data["reminders"] as JsonArray, now))
         {
-            string label = DataStore.GetString(r["label"]);
-            ReminderDue?.Invoke("时间到 ⏰", string.IsNullOrEmpty(label) ? "提醒" : label);
+            string label = ReminderService.LabelOf(r);
+            int pri = ReminderService.PriorityOf(r);
+            string title = pri switch { 2 => "紧急提醒", 1 => "重要提醒", _ => "时间到" };
+            ReminderDue?.Invoke(title, $"{nowHm} · {label}");
         }
     }
 

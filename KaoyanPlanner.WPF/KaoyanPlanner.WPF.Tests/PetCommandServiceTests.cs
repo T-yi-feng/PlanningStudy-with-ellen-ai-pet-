@@ -242,4 +242,114 @@ public class PetCommandServiceTests
         var (handled, _) = svc.HandleCommand("今天天气怎么样");
         Assert.False(handled);
     }
+
+    // ------------------------------------------------------------ 提醒（自然语言添加 / 列出）
+
+    private static JsonArray Reminders(DataStore store)
+        => store.Data["reminders"] as JsonArray ?? new JsonArray();
+
+    [Fact]
+    public void HandleCommand_AddReminder_ParsesAndSaves()
+    {
+        var store = NewStore();
+        var svc = NewService(store);
+        var (handled, reply) = svc.HandleCommand("提醒我 明天下午3点 喝水");
+        Assert.True(handled);
+        Assert.Contains("喝水", reply);
+        Assert.Contains("明天", reply);
+
+        var arr = Reminders(store);
+        Assert.Single(arr);
+        var r = (JsonObject)arr[0]!;
+        Assert.Equal("喝水", GetString(r["label"]));
+        Assert.Equal(15 * 60, ReminderService.TryParseHm(GetString(r["start"]), out int h, out int m) ? h * 60 + m : -1);
+        Assert.Equal(DateTime.Today.AddDays(1).ToString("yyyy-MM-dd"), GetString(r["date"]));
+        Assert.Equal(0L, GetInt(r["interval_min"]));
+        Assert.Equal(0L, GetInt(r["priority"]));
+        Assert.True(GetBool(r["enabled"], true));
+    }
+
+    [Fact]
+    public void HandleCommand_AddReminder_FullForm_IntervalAndPriority()
+    {
+        var store = NewStore();
+        var svc = NewService(store);
+        var (handled, reply) = svc.HandleCommand("提醒我 9月20号 晚上8点到10点 背单词 每30分钟 重要");
+        Assert.True(handled);
+        Assert.Contains("背单词", reply);
+        Assert.Contains("每 30 分钟", reply);
+
+        var r = (JsonObject)Reminders(store)[0]!;
+        Assert.Equal("2026-09-20", GetString(r["date"]));
+        Assert.Equal("20:00", GetString(r["start"]));
+        Assert.Equal("22:00", GetString(r["end"]));
+        Assert.Equal(30L, GetInt(r["interval_min"]));
+        Assert.Equal(1L, GetInt(r["priority"]));
+    }
+
+    [Fact]
+    public void AddReminder_NoTime_DefaultsFromNow_OnlyOnce()
+    {
+        var store = NewStore();
+        var svc = NewService(store);
+        var now = new DateTime(2026, 9, 10, 10, 30, 0);
+        var parsed = ReminderTextParser.Parse("提醒我 喝水", now)!;
+        string reply = svc.AddReminder(parsed, now);
+        Assert.Contains("喝水", reply);
+        Assert.Contains("10:31", reply);   // 现在 +1 分钟
+
+        var r = (JsonObject)Reminders(store)[0]!;
+        Assert.Equal("10:31", GetString(r["start"]));
+        Assert.Equal(0L, GetInt(r["interval_min"]));
+    }
+
+    [Fact]
+    public void AddReminder_PastTimeToday_RollsToTomorrow_AndTells()
+    {
+        var store = NewStore();
+        var svc = NewService(store);
+        var now = new DateTime(2026, 9, 10, 10, 30, 0);
+        var parsed = ReminderTextParser.Parse("提醒我 今天 9点 喝水", now)!;
+        string reply = svc.AddReminder(parsed, now);
+        Assert.Contains("改到明天", reply);
+
+        var r = (JsonObject)Reminders(store)[0]!;
+        Assert.Equal("2026-09-11", GetString(r["date"]));
+    }
+
+    [Fact]
+    public void HandleCommand_ReminderOnly_AsksForContent()
+    {
+        var store = NewStore();
+        var svc = NewService(store);
+        var (handled, reply) = svc.HandleCommand("提醒");
+        Assert.True(handled);
+        Assert.Contains("想提醒你什么", reply);
+        Assert.Empty(Reminders(store));
+    }
+
+    [Fact]
+    public void HandleCommand_ListReminders_ShowsAll()
+    {
+        var store = NewStore();
+        var svc = NewService(store);
+        svc.HandleCommand("提醒我 明天下午3点 喝水");
+        svc.HandleCommand("提醒我 9月20号 晚上8点 背单词 每30分钟 重要");
+
+        var (handled, reply) = svc.HandleCommand("列出提醒");
+        Assert.True(handled);
+        Assert.Contains("2 条提醒", reply);
+        Assert.Contains("喝水", reply);
+        Assert.Contains("背单词", reply);
+    }
+
+    [Fact]
+    public void HandleCommand_ListReminders_Empty_Explains()
+    {
+        var store = NewStore();
+        var svc = NewService(store);
+        var (handled, reply) = svc.HandleCommand("查看提醒");
+        Assert.True(handled);
+        Assert.Contains("还没有提醒", reply);
+    }
 }

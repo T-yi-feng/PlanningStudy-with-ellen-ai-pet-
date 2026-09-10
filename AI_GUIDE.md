@@ -130,6 +130,16 @@ KaoyanPlanner.WPF/
   已删除目标/不分类不在列表 → 灰）。
 - 常见坑：`GetOrCreateObj` 拿到的 JsonArray 若被方法「重建」（如 ClearDone 换新数组），旧引用变 stale，
   调用方改完必须**重新取** `daily[today]`。JsonNode 跨父节点合并要先 `DeepClone()`（复父限制）。
+- 提醒数据（`reminders` 数组，CreateDefaults 有空的兜底）：**旧版** `{"time":"HH:mm","label","enabled"}`（每日触发，
+  历史兼容，ReminderService.IsLegacy 判别）；**新版（惰性，用户添加才写）** `{"date":"yyyy-MM-dd","start":"HH:mm",
+  "end":"HH:mm","interval_min":0/5/10/…,"label","priority":0普通/1重要/2紧急,"enabled"}` —— 当天 `[start,end]`
+  内按 `interval_min` 间隔触发（≤0 = 仅起点一次），`ReminderService.ScheduleTimes` 生成触发点（纯函数可单测）。
+- 字体个性化（`ui` 惰性对象内）：`ui.font_family`（字体族，缺省/空 = 默认）、`ui.font_weight`
+  （normal/medium/semibold/bold，未配置时回退旧 `ui.codex_font` 开关）。`App.ApplyFontSettings(ui)` 在启动前与
+  设置页改动时调用：改写 **Application 级 DynamicResource `UIFont` / `UiFontWeight`**，全站文本即时刷新；
+  `UIFont` 在主题里已全部 `{DynamicResource UIFont}` 引用（图标 `IconFont` 恒为 Segoe MDL2，不随字体变）。
+- 农历：`Services/LunarCalendar.cs` 纯静态查表（1900–2100），`MonthDayCn(DateTime)` 输出「七月廿九 / 八月 / 闰二月」
+  供日历格小字（测试向量取自 iPhone 日历截图：2026-09-10=七月廿九、09-11=八月初一、09-12=八月初二）。
 
 ---
 
@@ -165,7 +175,8 @@ KaoyanPlanner.WPF/
 | `Tabs/TimerTab` | 专注计时 | 正计时（44px 大字）、开始/暂停/重置、喝水提醒（计时不停）、今日专注统计卡、跳统计页；**右侧计划选择面板**——「不分类」置顶 + 全部**长期计划（固定任务）**，默认「不分类」（`Border.MouseLeftButtonDown` 防重入；当前目标被删/改名 → 回退「不分类」）；右侧每行显示当日该目标已专注分钟 |
 | `Services/FocusTimerService` | 计时核心 | 注入 `Func<long> clock`（生产=TickCount64）可单测；**忽略 >2000ms 空隙**（休眠不算）；整秒 `AddFocusSeconds` 各自 `Math.Round(…,3)`（镜像 Python 逐秒 round，2s=0.034 这种）；≥15s SaveQuiet 节流；只发 `HistoryChanged`；`CurrentPlan` 属性（null=不指定，由 App/TimerTab 显式赋值，服务层不读计划列表）→ 每次落盘双写总/分时长 |
 | `Tabs/StatsTab` | 专注统计 | **日/周切换**（SegmentedButtonStyle，Click 防重入）。整区统计卡放 `FocusGallery`（**鼠标聚焦缩放**：指针压着哪张卡，哪张就最高最亮/其余随「与焦点卡间距」高斯衰减变矮变淡，逐帧缓动；**有界滚动**，首末到头即停、不无限循环；滚轮/拖拽驱动，指针在内层可溢出列表上时滚轮让给它）。日视图 4 卡 = `HistogramControl` 24h 直方图 + 单日摘要 + **各计划分布卡**（色点+名称+时长+占比条+%，`未分类=总−已标记`灰显）+ 近 10 天卡，◀/▶ 翻历史日。周视图（**本周一 00:00 至今**）2 卡 = 周摘要 + 本周各计划**堆叠比例条**+图例。颜色走 `PlanPalette.BrushKeyFor`（按**固定任务**顺序稳定、Chart1..6 回绕、已删除任务/不分类→灰） |
-| `Tabs/ReminderTab` | 提醒 | `TimeBox` HH:mm 掩码 + `ReminderService`（MatchingAt/NextEnabled/TryParseHm/PendingToday）+ 未完成任务提醒配置 |
+| `Tabs/ReminderTab` | 提醒（iPhone 日历风） | 顶部 = **收窄单行日期条**（8 格 × 46px，今天居左 1/4，‹ › 按周翻窗，蓝底选中白字、今天蓝点）+ 下方 = **两天一张表**：选中日 + 次日并排、**共用同一刻度列与同一个 ScrollViewer（两列完全联动滚动，像一张表，滚动条 Hidden 不显示）**，标题行（今天/明天标签+农历+条数）固定不滚动。**点日期条不同天 → 整块左右丝滑滑动（340ms CubicEase），滑动期间整表 BlurEffect 8px 高斯模糊、滑完 200ms 变清晰并移除 Effect**（无边缘遮罩）。**点击时间表任意格子 = 直接添加提醒**（日期 = 该列日期，时间预填该格起止）。提醒两种模型：旧版 `time`（每日触发，兼容）；新版 `date+start+end+interval_min+priority`。过期提醒由 HeartbeatService 启动/跨日时自动清理（`ReminderService.Expired`）。未完成任务提醒配置保留在底部 |
+| `Dialogs/AddReminderDialog` | 添加提醒弹窗 | 步骤 1 选日期（MiniCalendar）→ 丝滑淡入步骤 2（TimeBox 起止时间 + 间隔预设 ComboBox + 事务 TextBox + 紧急程度分段按钮 普通蓝/重要橙/紧急红）→ 返回 `CreatedReminder` JsonObject（date/start/end/interval_min/label/priority/enabled）。构造可传 `presetStart/presetEnd`（HH:mm）预填时间（从时间表格子进入） |
 | `Views/PlanSidebar` | 计划导航 | Notion 式：列出全部计划、点击切换、＋新建、右键重命名/删除。数据 `plans`/`active_plan` **惰性键**，任务可选 `plan` 字段，`EffectivePlan(task)`=显式优先否则 `plans[0]` |
 | `Dialogs/ReminderPopupWindow` | 提醒弹窗 | 无激活（WS_EX_NOACTIVATE）右下角，10s 自关，多弹窗栈式堆叠。**动画打在内容根上，绝不能打 Window.RenderTransform** |
 | `Dialogs/FixedTaskDialog` / `PlanNameDialog` | 表单弹窗 | 新建固定任务 / 计划改名 |
@@ -254,7 +265,7 @@ desk_pet/
 
 | 分栏 | 内容 | 落盘逻辑 |
 |---|---|---|
-| `SettingsGeneralTab` | 考研日期 DatePicker（写 `exam_date` yyyy-MM-dd）、窗口置顶（`window_topmost`+`host.ApplyTopmost`）、开机自启（`AutostartService.SetEnabled`，失败回滚+MessageBox）、降低动效（`reduce_motion`） |
+| `SettingsGeneralTab` | 考研日期 DatePicker（写 `exam_date` yyyy-MM-dd）、窗口置顶（`window_topmost`+`host.ApplyTopmost`）、开机自启（`AutostartService.SetEnabled`，失败回滚+MessageBox）、降低动效（`reduce_motion`）、**字体个性化**：字体族 ComboBox（下拉项按各自字体预览，本机没装的自动隐藏；带「圆润」标注优先）+ 字重（常规/中等/半粗/加粗）→ 写 `ui.font_family`/`ui.font_weight` + `App.ApplyFontSettings(ui)`，全站即时生效 |
 | `SettingsPetTab` | **皮肤卡片列表**（120×120 预览：preview.png 或常态第一帧；选中=Accent 2px 边框；无效置灰）＋「导入皮肤文件夹…」（FolderBrowserDialog）＋「打开皮肤文件夹」（Process.Start）＋**拖放导入区**（DragOver 设 `Effects=Copy`+`Handled=true`，Drop 取 FileDrop 目录）＋ pet_idle 开关/间隔（clamp ≥2） | 见 §6.2 |
 | `SettingsChatTab` | pet_chat.enabled + base_url/model/api_key（LostFocus/Enter 提交，SaveQuiet） |
 | `SettingsTtsTab` | tts.server_cmd/ref_audio_path/prompt_text/prompt_lang（空→"zh"），LostFocus/Enter 提交 |
@@ -313,7 +324,7 @@ desk_pet/
 cd KaoyanPlanner.WPF
 dotnet build KaoyanPlanner.WPF/KaoyanPlanner.WPF.csproj
 
-# 测试（当前 139 个）
+# 测试（当前 154 个）
 dotnet test KaoyanPlanner.WPF.Tests/KaoyanPlanner.WPF.Tests.csproj
 
 # 发布（-o 相对调用时 cwd 解析！必须绝对路径）
@@ -324,9 +335,13 @@ dotnet publish KaoyanPlanner.WPF/KaoyanPlanner.WPF.csproj -c Release \
 **测试约定**：`KaoyanPlanner.WPF.Tests/`，xUnit。
 - 服务层纯逻辑测试：DataStoreTests（含**真数据字节往返** `RoundTrip_RealData_BytesIdentical`、惰性键 `PetSkin_LazyWriteThenRemove_BytesIdentical`）、
   PetSkinServiceTests（22 个：ListSkins/ResolveClipFiles/IsValidSkinFolder/ImportSkin 同名 _2/重导 no-op/SanitizeSkinName Theory）、
-  FocusTimerServiceTests（假时钟）、ReminderServiceTests、PetCommandServiceTests、PlanTests、AniClipTests。
+  FocusTimerServiceTests（假时钟）、ReminderServiceTests（旧版每日/新版日期段间隔触发/NextEnabled/TryParseHm）、
+  LunarCalendarTests（截图校验向量：2026-09-10 七月廿九 / 09-11 八月 / 09-12 初二 + 闰月 + 春节边界）、
+  PetCommandServiceTests、PlanTests、AniClipTests。
 - **SettingsPageSmokeTests**：STA 线程 `new Application` + 合并 4 个 Theme/*.xaml（pack URI
-  `pack://application:,,,/PetPlanner;component/Theme/X.xaml`）→ 逐个 `new` 各分栏 + `SettingsPage.ShowSection` 逐栏切。
+  `pack://application:,,,/PetPlanner;component/Theme/X.xaml`）→ 逐个 `new` 各分栏 + `SettingsPage.ShowSection` 逐栏切；
+  **ReminderTab_And_AddReminderDialog_Load** 冒烟：种子新旧两种提醒（含过期/优先级）→ ReminderTab.Refresh 两次 +
+  实例化 AddReminderDialog（走 MiniCalendar/小时表格/FindResource 路径）。
   专门抓「编译不报、加载才崩」的 XAML 问题。**新增设置分栏/视图页后必跑**。
 - 冒烟（发布后）：`tasklist | grep -i PetPlanner` 进程存活；`md5sum dist-wpf/data.json` 启动前后字节不动
   （专注中会每 15s 写 focus_history——今天的秒数在涨是**正常**，不是损坏）；事件日志无 .NET Runtime 1000/1026 崩记录
@@ -359,3 +374,21 @@ dotnet publish KaoyanPlanner.WPF/KaoyanPlanner.WPF.csproj -c Release \
 ②全站 emoji→IconFont MDL2（根治豆腐块）、全圆胶囊→方形圆角 8、DatePicker 自绘、API Key 密码框、TTS 设置页状态灯/试听、
 桌宠个性化滑块、NumberStepper 步进器（喝水/闲话间隔）、ToastHost 撤销删除、Ctrl+K 命令面板、统计页增强（22-24/刻度/空态）；
 ③版本隔离+语音线路 Job Object（前轮）。应用版本 2.0.1，测试 139 个。改大模块前建议同步更新本导读与 memory。*
+
+
+---
+
+*最后更新：2026-09-10 第四轮——①对话升级：PetChatService 多轮上下文（最近 12 条历史，AI 记得住说过什么）+ 状态注入（任务/提醒概览，不再只限任务关键词）+ max_tokens 300→600 + Brand 人设放宽「每句 50 字」硬限制（回复 2~4 句、说明可更长）；②自然语言提醒：新增 Services/ReminderTextParser.cs 解析「提醒我 明天下午3点 喝水 每30分钟 重要」（今天/明天/几月几号/几点/半点/X点Y分/时间段/每N分钟/紧急程度），PetCommandService 新增「提醒/列出提醒」指令，今天已过的时间自动顺延明天并告知；③版本 2.2.0，测试 185 个全过。改大模块前建议同步更新本导读与 memory。*
+---
+
+*最后更新：2026-09-10 第五轮——语音服务彻查定论（2.2.3）：
+**§14「PYTHONPATH 污染」是误诊，真正根因三重**（自动化/豆包会话启动 PetPlanner 时）：
+  ① PYTHONNOUSERSITE=1（豆包会话带）→ Python 禁用 user site → GSVI 的 fastapi（装在 %APPDATA%\Python\Python312\site-packages，pip --user）找不到 → import 秒退；
+  ② PATH 前置豆包沙箱目录（...\Doubao\User Data\sandbox_runtime\bases\*\python 等，含 python314.dll/python3.dll/vcruntime140.dll）→ torch 按 PATH 加载错误版本 DLL → 模型加载（s1v3.ckpt）永久卡住 → TtsService 90s 超时被杀；
+  ③ APPDATA 缺失时 user site 退化（site.getusersitepackages 变 ~\Python\...）→ fastapi 也找不到。
+**修复（TtsService.EnsureServerAsync 子进程净化）**：清 PYTHONNOUSERSITE/PYTHONPATH/PYTHONHOME + 保 APPDATA + 移除 PATH 中含 Doubao 的目录。任何环境（资源管理器/自动化会话）启动均稳定。
+**用户正常场景（资源管理器启动，干净环境）服务一直正常**（8/10 至今 40+ 次成功日志）；「没连接上」全部发生在从自动化会话启动的实例上。
+**发布坑（2.2.2 踩过）**：dist-wpf 个人版是**框架依赖**发布（机器已装 .NET Desktop Runtime 8.0.30）；误加 --self-contained true 会让 runtimeconfig 变 includedFrameworks 声明而目录无 runtime 文件 → 启动器报「You must install .NET Desktop Runtime」→ 发布命令：dotnet publish -c Release -r win-x64（不带 --self-contained、不带 PublishSingleFile）。
+**验证 TTS 正确姿势**：UTF-8 无 BOM JSON 文件 + curl.exe --data-binary @file -H "Content-Type: application/json"（缺 JSON 头会 422；PowerShell 直接 -d 中文必乱码）。
+**dll 字符串检查**：用字节级搜索（UTF-16 字节序列），PowerShell 的 [Text.Encoding]::Unicode.GetString(...).Contains 在此场景不可靠（曾误判发布链路）。
+版本 2.2.3，测试 185 个全过；dist-wpf 已部署，9880 合成实测 HTTP 200 + RIFF WAV。*

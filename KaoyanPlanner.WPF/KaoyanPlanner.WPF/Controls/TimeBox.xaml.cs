@@ -19,6 +19,9 @@ public partial class TimeBox : UserControl
         Reset();
     }
 
+    /// <summary>当前输入文本（HH:mm）。</summary>
+    public string Value { get => tb.Text; set => tb.Text = value ?? ""; }
+
     /// <summary>重置为当前时间 +1 分钟（用于添加完清空 / 非法输入回退）。</summary>
     public void Reset()
         => tb.Text = DateTime.Now.AddMinutes(1).ToString("HH:mm", CultureInfo.InvariantCulture);

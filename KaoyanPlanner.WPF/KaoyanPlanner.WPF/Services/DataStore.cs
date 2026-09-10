@@ -128,33 +128,34 @@ public sealed class DataStore
         catch (UnauthorizedAccessException) { }
     }
 
-    /// <summary>原子写入 data.json（.tmp + 覆盖移动），格式与 json.dump(ensure_ascii=False, indent=2) 字节一致。</summary>
+    /// <summary>原子写入 data.json（.tmp + 覆盖移动），格式与 json.dump(ensure_ascii=False, indent=2) 字节一致。
+    /// 瞬时 IO 失败（杀软/同步进程短暂占用 .tmp）重试一次，避免用户数据静默丢失。</summary>
     public void Save()
     {
-        try
-        {
-            string json = PythonJson.ToJson(Data);
-            string tmp = DataFile + ".tmp";
-            File.WriteAllText(tmp, json, new UTF8Encoding(false));
-            File.Move(tmp, DataFile, overwrite: true);
-        }
-        catch (IOException) { return; }
-        catch (UnauthorizedAccessException) { return; }
-        Changed?.Invoke();
+        if (TryWriteAtomic()) Changed?.Invoke();
     }
 
     /// <summary>静默保存（窗口位置等高频低价值写入）：写盘但不触发 Changed，避免拖动时整面板重建。</summary>
-    public void SaveQuiet()
+    public void SaveQuiet() => TryWriteAtomic();
+
+    private bool TryWriteAtomic()
     {
-        try
+        for (int attempt = 0; attempt < 2; attempt++)
         {
-            string json = PythonJson.ToJson(Data);
-            string tmp = DataFile + ".tmp";
-            File.WriteAllText(tmp, json, new UTF8Encoding(false));
-            File.Move(tmp, DataFile, overwrite: true);
+            try
+            {
+                string json = PythonJson.ToJson(Data);
+                string tmp = DataFile + ".tmp";
+                File.WriteAllText(tmp, json, new UTF8Encoding(false));
+                File.Move(tmp, DataFile, overwrite: true);
+                return true;
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            // 短暂退避后重试一次（仅失败路径，最多 ~60ms，不影响正常流程）
+            if (attempt == 0) Thread.Sleep(60);
         }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
+        return false;
     }
 
     // ------------------------------------------------------------ 一次性任务（daily）

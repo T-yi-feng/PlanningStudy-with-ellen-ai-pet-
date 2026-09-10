@@ -3,8 +3,10 @@ using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Media;
 using System.Windows.Threading;
 using KaoyanPlanner.WPF.Services;
+using KaoyanPlanner.WPF.Views.Dialogs;
 using KaoyanPlanner.WPF.Views.Settings;
 using KaoyanPlanner.WPF.Views.Tabs;
 using Xunit;
@@ -129,6 +131,73 @@ public class SettingsPageSmokeTests
             {
                 try { Directory.Delete(dir, recursive: true); } catch { /* 清理失败忽略 */ }
             }
+        });
+    }
+
+    /// <summary>
+    /// 提醒页签 + 添加提醒弹窗运行期冒烟：种子旧版每日 + 新版日期段提醒（含过期、优先级），
+    /// 实例化 ReminderTab 并 Refresh（走小时表格构建、FindResource、农历、日历标记点路径），
+    /// 再实例化 AddReminderDialog（走 MiniCalendar 构建路径）。
+    /// </summary>
+    [Fact]
+    public void ReminderTab_And_AddReminderDialog_Load_Without_XamlError()
+    {
+        OnSta(() =>
+        {
+            string dir = Path.Combine(Path.GetTempPath(), "kp_reminder_smoke_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(dir);
+            try
+            {
+                var store = new DataStore(Path.Combine(dir, "data.json"));
+                store.Load();
+                store.Data["reminders"] = new JsonArray
+                {
+                    new JsonObject { ["time"] = "19:00", ["label"] = "晚间复盘", ["enabled"] = true },
+                    new JsonObject
+                    {
+                        ["date"] = DataStore.TodayStr(), ["start"] = "09:00", ["end"] = "12:00",
+                        ["interval_min"] = 30L, ["label"] = "背单词", ["priority"] = 1, ["enabled"] = true,
+                    },
+                    new JsonObject
+                    {
+                        ["date"] = "2020-01-01", ["start"] = "10:00", ["end"] = "11:00",
+                        ["interval_min"] = 15L, ["label"] = "已过期", ["priority"] = 2, ["enabled"] = true,
+                    },
+                };
+
+                var heartbeat = new HeartbeatService(store);
+                var tab = new ReminderTab(store, heartbeat);
+                tab.Refresh();      // 今日日期条 + 2h 时间表
+                tab.Refresh();      // 再刷一次（重复重建路径）
+                _ = new AddReminderDialog(store, DateTime.Today);
+                _ = new AddReminderDialog(store, DateTime.Today.AddDays(3));   // 其他月份路径
+                _ = new AddReminderDialog(store, DateTime.Today, "08:00", "10:00");   // 格子点击预填路径
+            }
+            finally
+            {
+                try { Directory.Delete(dir, recursive: true); } catch { /* 清理失败忽略 */ }
+            }
+        });
+    }
+
+    /// <summary>
+    /// 字体个性化：ApplyFontSettings 改写 Application 级 DynamicResource（UIFont/UiFontWeight），
+    /// 并验证旧 ui.codex_font 开关回退路径与缺省默认（半粗）。
+    /// </summary>
+    [Fact]
+    public void ApplyFontSettings_SwitchesResources_AndBackCompatCodex()
+    {
+        OnSta(() =>
+        {
+            App.ApplyFontSettings(new JsonObject { ["font_weight"] = "bold", ["font_family"] = "KaiTi" });
+            Assert.Equal(FontWeights.Bold, Application.Current.Resources["UiFontWeight"]);
+            Assert.Equal("KaiTi", ((FontFamily)Application.Current.Resources["UIFont"]).Source);
+
+            App.ApplyFontSettings(new JsonObject { ["codex_font"] = false });   // 旧键回退
+            Assert.Equal(FontWeights.Normal, Application.Current.Resources["UiFontWeight"]);
+
+            App.ApplyFontSettings(new JsonObject());                            // 缺省 → 默认半粗
+            Assert.Equal(FontWeights.SemiBold, Application.Current.Resources["UiFontWeight"]);
         });
     }
 }

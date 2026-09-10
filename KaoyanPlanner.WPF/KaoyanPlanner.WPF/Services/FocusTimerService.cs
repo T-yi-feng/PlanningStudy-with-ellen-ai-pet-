@@ -103,7 +103,9 @@ public sealed class FocusTimerService : IPetFocus
         long whole = (long)_accSec;
         if (whole < 1) return;
         _accSec -= whole;
-        _store.AddFocusSeconds(DateTime.Now.Hour, (int)whole);
+        // 与 Poll 同口径：暂停/退出时刷下的整秒仍归属当前计划（此前漏传 CurrentPlan →
+        // 这些秒只进 focus_history、不进 focus_plan，计划时长被低估）。
+        _store.AddFocusSeconds(DateTime.Now.Hour, (int)whole, CurrentPlan);
         _store.SaveQuiet();
         HistoryChanged?.Invoke();
     }

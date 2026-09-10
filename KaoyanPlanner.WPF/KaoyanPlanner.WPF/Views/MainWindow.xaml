@@ -123,7 +123,7 @@
                                ToolTip="双击修改标题" MouseLeftButtonDown="TitleText_MouseLeftButtonDown" />
                     <TextBox x:Name="titleEdit" Visibility="Collapsed" MinWidth="140" MaxWidth="340"
                              shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                             FontFamily="{StaticResource UIFont}" FontSize="16" FontWeight="Bold"
+                             FontFamily="{DynamicResource UIFont}" FontSize="16" FontWeight="Bold"
                              Padding="4,1" KeyDown="TitleEdit_KeyDown" LostKeyboardFocus="TitleEdit_LostFocus" />
                 </StackPanel>
                 <Border x:Name="countdownPill" Grid.Column="1" VerticalAlignment="Center"

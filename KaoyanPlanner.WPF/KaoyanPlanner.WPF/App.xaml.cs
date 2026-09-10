@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Media;
 using KaoyanPlanner.WPF.Services;
 using KaoyanPlanner.WPF.Views;
 using KaoyanPlanner.WPF.Views.Pet;
@@ -23,13 +24,28 @@ public partial class App : Application
     private SingleInstance? _single;
 
     /// <summary>
-    /// 应用 Codex 风格字体（偏粗）⇄ 常规字重。改 Application 级 DynamicResource（UiFontWeight），
-    /// 全站按钮/输入/菜单/正文即时刷新；蓝底白字为固定设计原则，不随此开关变化。
+    /// 应用全局字体设置（设置页「外观」）：字体族 ui.font_family（空 = 默认）+ 字重 ui.font_weight
+    /// （normal/medium/semibold/bold；未显式配置时回退旧 ui.codex_font 开关）。
+    /// 改 Application 级 DynamicResource（UIFont / UiFontWeight），全站文本即时刷新；
+    /// 蓝底白字为固定设计原则，不随字体变化。图标字体 IconFont 不受影响。
     /// </summary>
-    public static void ApplyUiStyle(bool codex)
+    public const string DefaultUiFont = "Segoe UI, Microsoft YaHei UI";
+
+    public static void ApplyFontSettings(System.Text.Json.Nodes.JsonObject? ui)
     {
         var res = Application.Current.Resources;
-        res["UiFontWeight"] = codex ? FontWeights.SemiBold : FontWeights.Normal;
+        string family = DataStore.GetString(ui?["font_family"]);
+        res["UIFont"] = string.IsNullOrEmpty(family) ? new FontFamily(DefaultUiFont) : new FontFamily(family);
+        string w = DataStore.GetString(ui?["font_weight"]);
+        FontWeight weight = w switch
+        {
+            "bold" => FontWeights.Bold,
+            "semibold" => FontWeights.SemiBold,
+            "medium" => FontWeights.Medium,
+            "normal" => FontWeights.Normal,
+            _ => DataStore.GetBool(ui?["codex_font"], true) ? FontWeights.SemiBold : FontWeights.Normal,
+        };
+        res["UiFontWeight"] = weight;
     }
 
     protected override void OnStartup(StartupEventArgs e)
@@ -48,9 +64,9 @@ public partial class App : Application
         _store = new DataStore();
         _store.Load();
 
-        // 外观：从 data.json 读 Codex 字体开关（默认开），在窗口创建前应用
+        // 外观：从 data.json 读字体设置（字体族 + 字重，兼容旧 codex_font 开关），在窗口创建前应用
         var uiCfg = DataStore.GetObj(_store.Data, "ui");
-        ApplyUiStyle(DataStore.GetBool(uiCfg?["codex_font"], true));
+        ApplyFontSettings(uiCfg);
 
         _heartbeat = new HeartbeatService(_store);
         _focusTimer = new FocusTimerService(_store);

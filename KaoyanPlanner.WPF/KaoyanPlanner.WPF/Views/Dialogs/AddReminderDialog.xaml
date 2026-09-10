@@ -1,0 +1,151 @@
+<Window x:Class="KaoyanPlanner.WPF.Views.Dialogs.AddReminderDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:KaoyanPlanner.WPF.Controls"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" Title="添加提醒" WindowStyle="None" AllowsTransparency="True"
+        Background="Transparent" ShowInTaskbar="False" ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight" WindowStartupLocation="CenterOwner"
+        KeyDown="Window_KeyDown" Foreground="{StaticResource TextPrimaryBrush}">
+
+    <Window.Resources>
+        <!-- 紧急程度分段按钮：普通(默认)/重要/紧急，选中 = 对应色底白字 -->
+        <Style x:Key="PrioritySegStyle" TargetType="RadioButton">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="MinWidth" Value="72" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="Background" Value="{StaticResource InputBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                                CornerRadius="8" SnapsToDevicePixels="True">
+                            <Grid>
+                                <Border x:Name="hover" CornerRadius="7" IsHitTestVisible="False" Opacity="0"
+                                        Background="{StaticResource HoverFillBrush}" />
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard><DoubleAnimation Storyboard.TargetName="hover" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation></Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard><DoubleAnimation Storyboard.TargetName="hover" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.1" /></Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border x:Name="card" Background="{StaticResource ElevatedBrush}"
+            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+            CornerRadius="12" Effect="{StaticResource PopupShadowEffect}"
+            SnapsToDevicePixels="True">
+        <Grid Margin="20,16,20,18" MinWidth="360" MaxWidth="420">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- 标题 -->
+            <Grid Grid.Row="0">
+                <TextBlock Text="添加提醒" Style="{StaticResource TitleText}" FontSize="16" />
+                <TextBlock x:Name="dateHint" Style="{StaticResource MutedText}" FontSize="12"
+                           HorizontalAlignment="Right" VerticalAlignment="Center" />
+            </Grid>
+
+            <!-- 步骤 1：小型日历选日期 -->
+            <controls:MiniCalendar x:Name="calendar" Grid.Row="1" Margin="0,12,0,0" />
+
+            <!-- 步骤 2：时间段 + 间隔 + 事务 + 紧急程度（选完日期后丝滑出现） -->
+            <Grid x:Name="timeSection" Grid.Row="2" Margin="0,16,0,0" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- 时间段：开始 - 结束 -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="提醒时间" Style="{StaticResource MutedText}" FontSize="13"
+                               VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <controls:TimeBox x:Name="startBox" Grid.Column="1" VerticalAlignment="Center" />
+                    <TextBlock Text="至" Grid.Column="2" Style="{StaticResource MutedText}" FontSize="13"
+                               VerticalAlignment="Center" Margin="8,0" />
+                    <controls:TimeBox x:Name="endBox" Grid.Column="3" VerticalAlignment="Center" />
+                    <TextBlock x:Name="rangeError" Grid.Column="4" Style="{StaticResource MutedText}"
+                               FontSize="11" Foreground="{StaticResource DangerBrush}"
+                               VerticalAlignment="Center" Margin="10,0,0,0" Text="结束时间需晚于开始时间"
+                               Visibility="Collapsed" />
+                </Grid>
+
+                <!-- 间隔 -->
+                <Grid Grid.Row="1" Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="重复间隔" Style="{StaticResource MutedText}" FontSize="13"
+                               VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <ComboBox x:Name="intervalBox" Grid.Column="1" Width="132" Height="30"
+                              VerticalContentAlignment="Center" />
+                </Grid>
+
+                <!-- 事务 -->
+                <StackPanel Grid.Row="2" Margin="0,12,0,0">
+                    <TextBlock Text="提醒事务" Style="{StaticResource MutedText}" FontSize="13" Margin="0,0,0,6" />
+                    <TextBox x:Name="labelInput" MaxLength="60" Height="32" VerticalContentAlignment="Center"
+                             ToolTip="要提醒的内容，例如「背单词」「起身活动」" />
+                </StackPanel>
+
+                <!-- 紧急程度 -->
+                <StackPanel Grid.Row="3" Margin="0,12,0,0">
+                    <TextBlock Text="紧急程度" Style="{StaticResource MutedText}" FontSize="13" Margin="0,0,0,6" />
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="priNormal" Style="{StaticResource PrioritySegStyle}" GroupName="pri"
+                                     IsChecked="True" Content="普通" Checked="Pri_Checked" />
+                        <RadioButton x:Name="priImportant" Style="{StaticResource PrioritySegStyle}" GroupName="pri"
+                                     Content="重要" Checked="Pri_Checked" />
+                        <RadioButton x:Name="priUrgent" Style="{StaticResource PrioritySegStyle}" GroupName="pri"
+                                     Content="紧急" Checked="Pri_Checked" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+
+            <!-- 底部按钮 -->
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+                <Button x:Name="cancelBtn" Content="取消" Style="{StaticResource SecondaryButtonStyle}"
+                        MinWidth="80" Click="Cancel_Click" />
+                <Button x:Name="addBtn" Content="添加" Style="{StaticResource PrimaryButtonStyle}"
+                        MinWidth="80" Margin="10,0,0,0" Click="Add_Click" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

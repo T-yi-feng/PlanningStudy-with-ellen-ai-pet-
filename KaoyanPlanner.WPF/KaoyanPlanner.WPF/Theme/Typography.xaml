@@ -16,7 +16,7 @@
          ⚠ 不设 Foreground：否则会覆盖蓝底按钮/横幅经继承下来的白色文字（隐式样式优先级高于继承值）。
          文本默认色由各 Window/UserControl 根的 Foreground=TextPrimaryBrush 提供。 -->
     <Style TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="LineHeight" Value="22" />
@@ -24,7 +24,7 @@
     </Style>
 
     <Style x:Key="BodyText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="LineHeight" Value="22" />
@@ -33,7 +33,7 @@
 
     <!-- 元数据小字：12px / 18px -->
     <Style x:Key="MetadataText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="FontWeight" Value="{DynamicResource UiFontWeight}" />
         <Setter Property="LineHeight" Value="18" />
@@ -46,7 +46,7 @@
 
     <!-- 标题：16px 加粗 -->
     <Style x:Key="TitleText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="16" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="LineHeight" Value="24" />
@@ -55,7 +55,7 @@
 
     <!-- 页面级标题 20px -->
     <Style x:Key="PageTitleText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="20" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="LineHeight" Value="28" />
@@ -64,7 +64,7 @@
 
     <!-- 计时大字 -->
     <Style x:Key="BigTimerText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
         <Setter Property="FontSize" Value="44" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="LineHeight" Value="56" />

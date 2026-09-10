@@ -4,13 +4,10 @@
              xmlns:controls="clr-namespace:KaoyanPlanner.WPF.Controls"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="860" Foreground="{StaticResource TextPrimaryBrush}">
+             mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="860"
+             Foreground="{StaticResource TextPrimaryBrush}">
 
-    <UserControl.Resources>
-        <!-- （间隔输入改用 NumberStepper 步进器，见页脚配置行） -->
-    </UserControl.Resources>
-
-    <Grid>
+    <Grid Margin="18,14,18,10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -18,41 +15,53 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- 添加行：时间 + 内容 + 添加 -->
-        <Grid Grid.Row="0" Margin="20,16,20,0">
+        <!-- 工具栏：添加提醒 / 下次提醒摘要 / 今天 -->
+        <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="时间" Style="{StaticResource MutedText}" Margin="0,0,6,0" VerticalAlignment="Center" />
-                <controls:TimeBox x:Name="timeBox" VerticalAlignment="Center" />
+            <Button x:Name="addBtn" Style="{StaticResource PrimaryButtonStyle}" MinWidth="108"
+                    Click="Add_Click" Cursor="Hand">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE710;" FontFamily="{StaticResource IconFont}" FontSize="12"
+                               VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <TextBlock Text="添加提醒" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <TextBlock x:Name="nextLbl" Grid.Column="1" Style="{StaticResource MutedText}" FontSize="12"
+                       Margin="14,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <Button x:Name="todayBtn" Grid.Column="2" Style="{StaticResource SecondaryButtonStyle}"
+                    MinWidth="72" Click="Today_Click" Content="今天" Cursor="Hand" />
+        </Grid>
+
+        <!-- 单行日期条：收窄（不占满全宽），今天居左 1/4，两侧前后几天；点哪天 → 下方两天表格左右丝滑切换 -->
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="4,4" Margin="0,10,0,6"
+                HorizontalAlignment="Left">
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="stripPrev" Style="{StaticResource GhostIconButtonStyle}" Width="28" Height="28"
+                        Padding="0" VerticalAlignment="Center" Click="StripPrev_Click" ToolTip="往前翻一周">
+                    <TextBlock Text="&#xE76B;" FontFamily="{StaticResource IconFont}" FontSize="11" />
+                </Button>
+                <StackPanel x:Name="stripGrid" Orientation="Horizontal" Margin="2,0" />
+                <Button x:Name="stripNext" Style="{StaticResource GhostIconButtonStyle}" Width="28" Height="28"
+                        Padding="0" VerticalAlignment="Center" Click="StripNext_Click" ToolTip="往后翻一周">
+                    <TextBlock Text="&#xE76C;" FontFamily="{StaticResource IconFont}" FontSize="11" />
+                </Button>
             </StackPanel>
-            <TextBox x:Name="labelInput" Grid.Column="1" Margin="8,0,8,0" MaxLength="40"
-                     KeyDown="LabelInput_KeyDown" ToolTip="提醒内容，回车添加" />
-            <Button Grid.Column="2" Content="添加" Style="{StaticResource PrimaryButtonStyle}"
-                    VerticalAlignment="Center" Click="Add_Click" />
-        </Grid>
+        </Border>
 
-        <!-- 下次提醒摘要 -->
-        <TextBlock x:Name="nextLbl" Grid.Row="1" Style="{StaticResource MutedText}"
-                   Margin="20,10,20,0" />
-
-        <!-- 提醒列表 / 空态 -->
-        <Grid Grid.Row="2" Margin="20,10,20,8">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
-                <StackPanel x:Name="listPanel" />
-            </ScrollViewer>
-            <TextBlock x:Name="emptyLbl" Style="{StaticResource MutedText}"
-                       TextAlignment="Center" VerticalAlignment="Center" HorizontalAlignment="Center"
-                       TextWrapping="Wrap">
-                <Run Text="还没有提醒" /><LineBreak /><Run Text="可以先设一个晚间复盘或背词提醒" />
-            </TextBlock>
-        </Grid>
+        <!-- 两天时间表：选中日 + 次日 并排；点击不同天 → 整块左右丝滑滑动 + 末端高斯模糊渐隐 -->
+        <Border x:Name="tableCard" Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0" Margin="0,6,0,0"
+                ClipToBounds="True" MouseWheel="TableCard_MouseWheel">
+            <Grid x:Name="slideRoot" ClipToBounds="True">
+                <!-- groupA / groupB（双组轮播）与左右渐隐遮罩由代码创建 -->
+            </Grid>
+        </Border>
 
         <!-- 未完成任务提醒：每 N 分钟检查当天待办 -->
-        <Border Grid.Row="3" Style="{StaticResource SectionHeaderStyle}" Margin="20,0,20,16"
+        <Border Grid.Row="3" Style="{StaticResource SectionHeaderStyle}" Margin="0,12,0,0"
                 Padding="12,6">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <CheckBox x:Name="unfinishedCheck" Content="未完成任务提醒"

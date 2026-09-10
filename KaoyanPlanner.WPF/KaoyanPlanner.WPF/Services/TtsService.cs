@@ -50,6 +50,29 @@ public sealed class TtsService : IDisposable
         _store = store;
         _cacheDir = Path.Combine(Path.GetTempPath(), "kaoyan_tts");
         try { Directory.CreateDirectory(_cacheDir); } catch { /* 忽略，合成时再判 */ }
+        CleanCache();   // 启动时清理历史缓存：wav 只播一次，旧文件留着只会无限累积
+    }
+
+    /// <summary>
+    /// 清理 1 小时前的合成缓存（每次播报都新写文件，旧 wav 播完即无价值）。
+    /// 启动时执行一次即可：运行期间文件只在生成后几秒内被播放，不会被误删。
+    /// </summary>
+    private void CleanCache()
+    {
+        try
+        {
+            long cutoff = DateTime.UtcNow.AddHours(-1).Ticks;
+            foreach (string f in Directory.EnumerateFiles(_cacheDir, "ellen_*.wav"))
+            {
+                try
+                {
+                    if (File.GetLastWriteTimeUtc(f).Ticks < cutoff)
+                        File.Delete(f);
+                }
+                catch { /* 单文件失败忽略（可能正被播放占用），不阻塞清理 */ }
+            }
+        }
+        catch { /* 目录不可用/被清 → 忽略 */ }
     }
 
     public bool Enabled => _enabled;
@@ -100,7 +123,10 @@ public sealed class TtsService : IDisposable
             bool hasCmd = !string.IsNullOrWhiteSpace(ServerCmd);
             // 服务就绪，或外部手动管理（无命令，speak 会静默兜底）→ 启用
             if (_wanted && (ok || !hasCmd))
+            {
                 _enabled = true;
+                WarmUp();   // 预热：消除 CUDA 首句惩罚（首次推理 ~9s → 预热后 ~1.5s）
+            }
         }
         catch
         {
@@ -121,13 +147,35 @@ public sealed class TtsService : IDisposable
             return false;
         try
         {
-            _proc = Process.Start(new ProcessStartInfo("cmd.exe", "/c " + cmd)
+            var psi = new ProcessStartInfo("cmd.exe", "/c " + cmd)
             {
                 CreateNoWindow = true,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-            });
+            };
+            // 坑（2.2.3 定论，承接 2.2.2）：GSVI 的 fastapi 装在「user site」（%APPDATA%\Python\Python312\site-packages）。
+            // 从豆包/自动化会话启动本程序时，子进程会继承三个污染源，必须逐个净化：
+            //   1) PYTHONNOUSERSITE=1 → 禁用 user site → fastapi 找不到 → import 秒退；
+            //   2) PYTHONPATH / PYTHONHOME → 干扰包定位（早期 §14 误诊为 PYTHONPATH，实为 1)）；
+            //   3) PATH 前置的豆包沙箱目录（含 python314.dll / python3.dll / vcruntime140.dll）→
+            //      torch 按 PATH 搜 DLL 时加载到错误版本 → 模型加载（s1v3.ckpt）永久卡住 → 90s 超时被杀。
+            // 另外 APPDATA 必须保留/补齐（user site 定位依赖它）：
+            psi.Environment["PYTHONNOUSERSITE"] = "";
+            psi.Environment["PYTHONPATH"] = "";
+            psi.Environment["PYTHONHOME"] = "";
+            if (!psi.Environment.TryGetValue("APPDATA", out string? appData) || string.IsNullOrEmpty(appData))
+                psi.Environment["APPDATA"] = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Roaming");
+            if (psi.Environment.TryGetValue("Path", out string? path) && !string.IsNullOrEmpty(path))
+            {
+                string[] kept = path.Split(';')
+                    .Where(p => !string.IsNullOrWhiteSpace(p)
+                        && !p.Contains("Doubao", StringComparison.OrdinalIgnoreCase))
+                    .ToArray();
+                psi.Environment["Path"] = string.Join(";", kept);
+            }
+            _proc = Process.Start(psi);
             if (_proc is not null)
             {
                 // 纳入「随父同死」作业：即使本程序被任务管理器强杀/崩溃，cmd 及其 python 孙进程
@@ -183,6 +231,43 @@ public sealed class TtsService : IDisposable
 
     /// <summary>程序退出时调用：终止本服务拉起的服务进程（有则杀，无则不动）。</summary>
     public void StopServer() => KillProc();
+
+    /// <summary>
+    /// 预热：服务就绪后静默合成一次短句，把 CUDA kernel / 权重页缓存热起来。
+    /// GSVI 冷启动首次推理约 9s，预热后约 1.5s；不写文件、不播放、不提示，失败静默。
+    /// </summary>
+    private void WarmUp()
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(1500);   // 等 uvicorn 完全就绪（就绪探测与监听可能差几百 ms）
+                string refPath = ResolveRefAudio(RefAudioPath);
+                if (refPath.Length == 0) return;
+                string prompt = PromptText.Trim();
+                if (prompt.Length == 0) prompt = PromptFromFilename(refPath);
+                var payload = new JsonObject
+                {
+                    ["text"] = "我在呢。",
+                    ["text_lang"] = "auto",
+                    ["ref_audio_path"] = refPath,
+                    ["prompt_lang"] = PromptLang,
+                    ["prompt_text"] = prompt,
+                    ["text_split_method"] = "cut5",
+                    ["speed"] = 1.0,
+                };
+                using var content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
+                using var cts = new CancellationTokenSource(40_000);
+                using var resp = await Http.PostAsync(Url + "/tts", content, cts.Token);
+                // 结果丢弃：预热只为让后续合成更快，不播放不落盘
+            }
+            catch
+            {
+                // 预热失败完全静默（服务可能刚起还在忙 / 端口被占等，不影响主链路）
+            }
+        });
+    }
 
     public void Dispose()
     {

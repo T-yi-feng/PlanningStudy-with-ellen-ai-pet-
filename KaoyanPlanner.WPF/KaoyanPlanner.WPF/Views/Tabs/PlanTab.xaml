@@ -11,7 +11,7 @@
             <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="FontFamily" Value="{StaticResource UIFont}" />
+            <Setter Property="FontFamily" Value="{DynamicResource UIFont}" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Padding" Value="12,6" />
             <Setter Property="Cursor" Value="Hand" />
@@ -106,7 +106,7 @@
                 BorderBrush="{StaticResource WarnBorderSoftBrush}"
                 BorderThickness="1" CornerRadius="8" Margin="0,0,0,10" Padding="10,7">
             <TextBlock x:Name="bannerText" TextWrapping="Wrap"
-                       FontFamily="{StaticResource UIFont}" FontSize="12" LineHeight="18"
+                       FontFamily="{DynamicResource UIFont}" FontSize="12" LineHeight="18"
                        Foreground="{StaticResource WarnBrush}" />
         </Border>
 
