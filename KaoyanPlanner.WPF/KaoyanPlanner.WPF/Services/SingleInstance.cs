@@ -79,7 +79,7 @@ public sealed class SingleInstance : IDisposable
             if (n > 0 && Encoding.ASCII.GetString(buf, 0, n).Contains("show"))
             {
                 try { Write(server, "ok"); } catch (IOException) { }
-                _onWake();
+                try { _onWake(); } catch { /* 唤醒失败不应拖垮主进程（历史崩溃：null this 委托） */ }
             }
         }
         catch (IOException) { }

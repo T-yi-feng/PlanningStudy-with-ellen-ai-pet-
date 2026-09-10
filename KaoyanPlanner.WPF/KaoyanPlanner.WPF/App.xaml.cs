@@ -37,7 +37,8 @@ public partial class App : Application
         base.OnStartup(e);
 
         // 单实例：已有实例在跑 → 唤醒它（还原窗口）并退出自己（对齐旧版 QLocalServer 语义）
-        _single = new SingleInstance(() => Dispatcher.InvokeAsync(_mainWindow!.ShowFromTray));
+        // 唤醒回调在后台线程触发，可能早于 _mainWindow 初始化完成（如开机双实例竞态）→ 空安全调用，避免 “null this” 委托崩溃
+        _single = new SingleInstance(() => Dispatcher.InvokeAsync(() => _mainWindow?.ShowFromTray()));
         if (!_single.TryAcquire())
         {
             Shutdown();
